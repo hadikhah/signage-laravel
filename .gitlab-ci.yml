@@ -1,0 +1,78 @@
+# Runs `php artisan test` on every push and MR.
+# Postgres 17 + Redis 7 to match compose.yaml.
+# PHP 8.4 to match the Dockerfile.
+
+stages:
+  - test
+
+variables:
+  # Faster, quieter composer & npm
+  COMPOSER_NO_INTERACTION: "1"
+  COMPOSER_ALLOW_SUPERUSER: "1"
+  NPM_CONFIG_FUND: "false"
+  NPM_CONFIG_AUDIT: "false"
+
+  # Test-time env (phpunit.xml may override these, that's fine)
+  APP_ENV: testing
+  APP_KEY: "base64:0000000000000000000000000000000000000000000="
+  DB_CONNECTION: pgsql
+  DB_HOST: postgres          # = the service alias below, NOT 127.0.0.1
+  DB_PORT: 5432
+  DB_DATABASE: testing
+  DB_USERNAME: sail
+  DB_PASSWORD: password
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  CACHE_STORE: array
+  SESSION_DRIVER: array
+  QUEUE_CONNECTION: sync
+  BROADCAST_CONNECTION: log
+
+test:
+  stage: test
+  image: php:8.4-cli
+  timeout: 15m
+
+  services:
+    - name: postgres:17-alpine
+      alias: postgres
+    - name: redis:7-alpine
+      alias: redis
+
+  # Run jobs on tagged runners only if you've tagged one; remove if using shared runners
+  # tags: [docker]
+
+  cache:
+    key:
+      files:
+        - composer.lock
+    paths:
+      - vendor/
+
+  before_script:
+    # 1. System packages needed to build PHP extensions
+    - apt-get update -qq
+    - apt-get install -y -qq git unzip libpq-dev libzip-dev libpng-dev libicu-dev libonig-dev libxml2-dev curl
+
+    # 2. PHP extensions Laravel needs
+    - docker-php-ext-install -j"$(nproc)" pdo_pgsql pgsql zip gd intl bcmath pcntl opcache
+
+    # 3. Redis extension (pecl, not apt — this is the PHP CLI image)
+    - pecl install redis >/dev/null && docker-php-ext-enable redis
+
+    # 4. Composer
+    - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+    # 5. Node 24 (matches your Dockerfile NODE_VERSION)
+    - curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
+    - apt-get install -y -qq nodejs
+
+    # 6. Deps
+    - composer install --prefer-dist --no-progress --no-interaction --no-scripts
+    - cp .env.example .env
+    - php artisan key:generate --no-interaction
+    - npm ci
+    - npm run build
+
+  script:
+    - php artisan test --parallel

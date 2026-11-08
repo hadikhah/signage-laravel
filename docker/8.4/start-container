@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+set -e
+
+if [ "$SUPERVISOR_PHP_USER" != "root" ] && [ "$SUPERVISOR_PHP_USER" != "sail" ]; then
+    printf '%s\n' 'SUPERVISOR_PHP_USER must be root or sail.' >&2
+    exit 1
+fi
+
+if [ -n "$WWWUSER" ] && [ "$WWWUSER" != "$(id -u sail)" ]; then
+    usermod -u "$WWWUSER" sail
+fi
+
+mkdir -p /.composer
+chown sail:sail /.composer
+
+if [ $# -gt 0 ]; then
+    if [ "$SUPERVISOR_PHP_USER" = "root" ]; then
+        exec "$@"
+    else
+        exec gosu sail "$@"
+    fi
+else
+    exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+fi

@@ -1,0 +1,100 @@
+name: tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  # Cancel superseded runs on the same branch/PR instead of wasting runner minutes
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: testing
+          POSTGRES_USER: sail
+          POSTGRES_PASSWORD: password
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U sail -d testing"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:0000000000000000000000000000000000000000000=
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: testing
+      DB_USERNAME: sail
+      DB_PASSWORD: password
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      CACHE_STORE: array
+      QUEUE_CONNECTION: sync         # no queue service, jobs run inline in tests
+      SESSION_DRIVER: array
+      BROADCAST_CONNECTION: log
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: >-
+            bcmath, ctype, curl, dom, fileinfo, gd, iconv, intl,
+            mbstring, openssl, pcntl, pdo, pdo_pgsql, pgsql,
+            redis, soap, sodium, sqlite3, tokenizer, xml, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/composer
+            vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction --no-scripts
+
+      - name: Prepare env
+        run: |
+          cp .env.example .env
+          php artisan key:generate --no-interaction
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Run tests
+        run: php artisan test --parallel
