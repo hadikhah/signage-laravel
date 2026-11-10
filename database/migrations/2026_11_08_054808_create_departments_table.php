@@ -16,11 +16,11 @@ return new class extends Migration {
 
             $table->string("department_name");
 
-            $table->text("daily_message");
+            $table->text("daily_message")->nullable();
 
             $table->boolean('is_child')->default(false);
 
-            $table->boolean('lock')->default(false);
+            $table->boolean('lock')->nullable()->default(false);
 
             $table->foreignId('office_id')
                 ->constrained('offices')
@@ -35,8 +35,6 @@ return new class extends Migration {
 
             $table->index(['office_id', 'department_name']);
             $table->index('parent_id');
-
-
         });
     }
 

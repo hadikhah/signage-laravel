@@ -20,8 +20,6 @@ return new class extends Migration {
             $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
 
             // content_type: 1=image, 2=video, 3=text, 4=flash, 5=url
-            // TODO (contents.content_type): consider PHP enum cast in model
-            //   (ContentType) once values are confirmed. Kept as tinyint per spec.
             $table->unsignedTinyInteger('content_type');
 
             $table->boolean('is_auto_login')->default(false);
