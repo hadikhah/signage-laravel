@@ -431,3 +431,180 @@ Fill this in after Steps 5–9 ship.
 | `tests/Feature/Console/ImportLegacySignageTest.php` | Flag + error-path tests |
 | `tests/Unit/Services/Import/CsvReaderTest.php` | Parser tests |
 | `docs/project-structure.md` | Architecture reference |
+
+## Playback & Media
+
+The playback endpoint serves the resolved playlist in legacy PascalCase
+JSON. Media serves the underlying files.
+
+### Endpoints
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/v1/playback/monitor-contents` | Playlist for the calling IP |
+| GET | `/api/Content/MonitorContents` | Legacy alias (old Angular client hardcodes it) |
+| GET | `/media/files/{contentId}/{filename}` | Static media file |
+
+### Playback — query parameters
+
+| Param | Applies | Notes |
+|---|---|---|
+| `view` | Both playback endpoints | Optional. `"undefined"` is treated as absent. |
+| `ip` | Both playback endpoints | **Dev-only** — only honored in `local`/`development`/`testing`. See ADR-0005. |
+
+### Playback — response shape
+
+```json
+{
+  "ResultCode": 4000,
+  "Message": null,
+  "Data": {
+    "ShareContents": null,
+    "MonitorContents": [
+      {
+        "ContentId": 1,
+        "ContentName": "welcome.jpg",
+        "UserId": null,
+        "UserName": null,
+        "ContentType": 1,
+        "Contentpath": "/media/files/1/welcome.jpg",
+        "ClientFileName": "original_welcome.jpg",
+        "FromDate": null,
+        "ToDate": null,
+        "ContentTypeText": "عکس",
+        "UploadeDateTime": "2026-01-01T00:00:00",
+        "UploadDate": "1404/10/11",
+        "UploadTime": "12:00",
+        "DisplayTime": 10,
+        "Active": true,
+        "UrlUserName": null,
+        "UrlPassword": null,
+        "IsAutoLogin": null,
+        "Url": null
+      }
+    ],
+    "DailyMessage": "Welcome to IT",
+    "IsMonitorContent": true,
+    "ByPassAllContent": false,
+    "MonitorDateTime": {
+      "TodayDate": "1404/08/16",
+      "PersianWeekDayText": "شنبه",
+      "WeekDayText": "Saturday",
+      "Full": "1404/08/16-شنبه",
+      "PersianMonth": 8,
+      "PersianYear": 1404,
+      "PersianDay": 16,
+      "Month": 11,
+      "Year": 2025,
+      "Day": 7
+    }
+  }
+}
+```
+
+### Paths
+
+- **Default** — `MonitorContents` populated, `ShareContents: null`, `IsMonitorContent: true`
+- **Bypass** — `ShareContents` populated, `MonitorContents: null`, `IsMonitorContent: false`, `DailyMessage: ""`
+- **View** — `MonitorContents` populated from `view_contents ∩ monitor_contents`
+- **Unknown IP** — `MonitorContents: []` (empty array, not null), `DailyMessage: ""`
+
+### Legacy field typos
+
+These are intentional — the legacy client hardcodes them. Do not rename:
+
+| Field | Not |
+|---|---|
+| `Contentpath` (lowercase p) | `ContentPath` |
+| `UploadeDateTime` (extra e) | `UploadedDateTime` |
+| `ByPassAllContent` (capital P) | `BypassAllContent` |
+
+A rename must ship alongside a client update in the same PR.
+
+### Example curls
+
+```bash
+# Playlist for monitor at 10.0.0.1
+curl -s 'http://localhost/api/v1/playback/monitor-contents?ip=10.0.0.1' | jq
+
+# With view
+curl -s 'http://localhost/api/v1/playback/monitor-contents?ip=10.0.0.1&view=morning' | jq
+
+# Legacy alias (old client path)
+curl -s 'http://localhost/api/Content/MonitorContents?ip=10.0.0.1' | jq
+
+# Unknown IP — empty playlist, ResultCode 4000
+curl -s 'http://localhost/api/v1/playback/monitor-contents?ip=10.99.99.99' | jq '.Data.MonitorContents'
+```
+
+### Media route
+
+Files served from `storage/app/media/files/{contentId}/{filename}`.
+
+**Directory layout:**
+
+```
+storage/app/media/
+└── files/
+    ├── 1/
+    │   └── welcome.jpg          ← must match contents.content_name exactly
+    ├── 2/
+    │   └── intro.mp4
+    └── 3/
+        └── notice.jpg
+```
+
+Filename must match `contents.content_name` exactly (case-sensitive) —
+this is a path-traversal guard.
+
+**Copy a real file to test:**
+
+```bash
+mkdir -p storage/app/media/files/1
+cp /path/to/any.jpg storage/app/media/files/1/welcome.jpg
+curl -i 'http://localhost/media/files/1/welcome.jpg'
+```
+
+**Error responses (all `404`):**
+
+| Case | Log level |
+|---|---|
+| Unknown contentId | info |
+| Content `deleted=true` | info |
+| Filename mismatch | info |
+| File missing on disk | warning |
+| Path traversal attempt (`../` in filename) | — (rejected by route/controller) |
+| Non-numeric contentId | — (rejected by `whereNumber` route constraint) |
+
+### Persian dates
+
+Backed by **Verta** (`hekmatinasser/verta`) wrapped in
+`App\Services\Support\PersianDate`. Swap the library by editing one file —
+no consumer changes.
+
+**Output fields:**
+
+| Where | Field | Example |
+|---|---|---|
+| Content item | `UploadeDateTime` | `2026-01-01T00:00:00` (Gregorian ISO) |
+| Content item | `UploadDate` | `1404/10/11` (Jalali) |
+| Content item | `UploadTime` | `12:00` |
+| `MonitorDateTime` | `TodayDate` | `1404/08/16` |
+| `MonitorDateTime` | `PersianWeekDayText` | `شنبه` |
+| `MonitorDateTime` | `WeekDayText` | `Saturday` |
+| `MonitorDateTime` | `Full` | `1404/08/16-شنبه` |
+| `MonitorDateTime` | `PersianYear` / `Month` / `Day` | `1404` / `8` / `16` |
+| `MonitorDateTime` | `Year` / `Month` / `Day` | `2025` / `11` / `7` (Gregorian) |
+
+### Files
+
+| File | Role |
+|---|---|
+| `app/Http/Controllers/Api/V1/PlaybackController.php` | Playback endpoint |
+| `app/Http/Controllers/MediaController.php` | Media file serving |
+| `app/Http/Requests/PlaybackRequest.php` | Query-param validation |
+| `app/Services/Playback/PlaybackTransformer.php` | Playlist → legacy JSON |
+| `app/Services/Support/PersianDate.php` | Jalali + Gregorian formatting |
+| `app/Providers/MediaRouteServiceProvider.php` | Loads `routes/media.php` |
+| `routes/media.php` | Media route registration |
+| `config/filesystems.php` | `media` disk definition |
