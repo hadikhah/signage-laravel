@@ -54,6 +54,52 @@ final class TableSpecs
                 columns: ['id', 'monitor_id', 'content_id', 'content_order', 'display_time', 'active'],
                 requiredCols: ['id', 'monitor_id', 'content_id'],
             ),
+            new TableSpec(
+                table: 'views',
+                csvFile: 'views.csv',
+                columns: ['id', 'name'],
+                requiredCols: ['id', 'name'],
+            ),
+            new TableSpec(
+                table: 'view_contents',
+                csvFile: 'view_contents.csv',
+                columns: ['id', 'view_id', 'content_id'],
+                requiredCols: ['id', 'view_id', 'content_id'],
+            ),
+            new TableSpec(
+                table: 'monitor_views',
+                csvFile: 'monitor_views.csv',
+                columns: ['id', 'monitor_id', 'view_id'],
+                requiredCols: ['id', 'monitor_id', 'view_id'],
+            ),
+
+            // --- share layer ----
+            new TableSpec(
+                table: 'share_contents',
+                csvFile: 'share_contents.csv',
+                columns: ['id', 'content_id'],
+                requiredCols: ['id', 'content_id'],
+            ),
+            new TableSpec(
+                table: 'share_monitors',
+                csvFile: 'share_monitors.csv',
+                columns: ['id', 'monitor_id'],
+                requiredCols: ['id', 'monitor_id'],
+            ),
+
+            // --- base layer ----
+            new TableSpec(
+                table: 'base_contents',
+                csvFile: 'base_contents.csv',
+                columns: ['id', 'content_id'],
+                requiredCols: ['id', 'content_id'],
+            ),
+            new TableSpec(
+                table: 'base_monitors',
+                csvFile: 'base_monitors.csv',
+                columns: ['id', 'monitor_id'],
+                requiredCols: ['id', 'monitor_id'],
+            ),
         ];
     }
 
