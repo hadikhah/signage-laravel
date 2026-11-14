@@ -31,7 +31,7 @@
 | 4 — Import command | 4 | ✅ Done | `signage:import-legacy` with dry-run, truncate, only, idempotent |
 | 5 — Reference APIs | 5 | ⏸️ Blocked | waiting on `04-API-CONTRACT.md` |
 | 6 — Playlist resolver | 6–7 | ✅ Done | Rules 1–6 per spec; date-filter precedence per ADR-0002; 25 tests |
-| 7 — Playback + media | 8 | ⏸️ Pending | depends on Step 6 |
+| 7 — Playback + media | 8 | ✅ Done | `/api/v1/playback/monitor-contents`, legacy alias `/api/Content/MonitorContents`, `/media/files/{id}/{name}`, Verta-based Persian dates |
 | 8 — Player | 9 | ⏸️ Pending | depends on Step 7 |
 | 9 — Tests + doctor | 10 | ⏸️ Pending | |
 | 10 — Demo + handover | 10 | ⏸️ Pending | |
@@ -73,11 +73,14 @@ signage-laravel/
 │   │   │           ├── OfficeController.php    ← Step 5
 │   │   │           ├── DepartmentController.php← Step 5
 │   │   │           ├── MonitorController.php   ← Step 5
+│   │   │           ├── PlaybackController.php  ← Step 7
 │   │   │           └── Concerns/
 │   │   │               └── HandlesPaginatedList.php  ← Step 5
+│   │   │   └── MediaController.php             ← Step 7
 │   │   ├── Middleware/
 │   │   ├── Requests/                           ← Step 5+
 │   │   │   └── PaginatedRequest.php            ← Step 5
+│   │   │   └── PlaybackRequest.php             ← Step 7
 │   │   └── Resources/                          ← Step 5
 │   │       ├── CityResource.php                ← Step 5
 │   │       ├── OfficeResource.php              ← Step 5
@@ -105,6 +108,7 @@ signage-laravel/
 │   │   ├── View.php                            ← Step 3 (stub)
 │   │   └── ViewContent.php                     ← Step 3 (stub)
 │   ├── Providers/
+│   │   └── MediaRouteServiceProvider.php       ← Step 7
 │   └── Services/
 │       ├── Import/                             ← Step 4
 │       │   ├── CsvReader.php
@@ -113,13 +117,22 @@ signage-laravel/
 │       │   ├── TableImporter.php
 │       │   ├── TableSpec.php
 │       │   └── TableSpecs.php
+│       ├── Playback/                           ← Step 7
+│       │   └── PlaybackTransformer.php
 │       ├── Playlist/                           ← Step 6
 │       │   ├── IpNormalizer.php
 │       │   ├── Playlist.php
 │       │   ├── PlaylistItem.php
 │       │   └── PlaylistResolver.php
 │       └── Support/
-│           └── PersianDate.php                 ← Step 7 (placeholder)
+│           └── PersianDate.php                 ← Step 7 (real impl via Verta)
+├── bootstrap/
+│   ├── app.php
+│   ├── cache/
+│   └── providers.php                           (MediaRouteServiceProvider registered Step 7)
+├── config/
+│   ├── filesystems.php                         (media disk added Step 7)
+│   └── signage.php                             ← Step 6 (expand_loopback_variants)
 ├── database/
 │   ├── factories/
 │   ├── migrations/
@@ -143,8 +156,9 @@ signage-laravel/
 │   └── views/
 │       └── player/                             ← Step 8
 ├── routes/
-│   ├── api.php                                 ← Step 5 (v1 group)
+│   ├── api.php                                 ← Step 5 (v1 group),Step 7 (playback + legacy alias)
 │   ├── console.php
+│   ├── media.php                               ← Step 7 (loaded via MediaRouteServiceProvider)
 │   ├── web.php
 │   └── up.php                                  ← Step 1 (health endpoint)
 ├── storage/
@@ -154,14 +168,22 @@ signage-laravel/
 ├── tests/
 │   ├── Feature/
 │   │   ├── Api/V1/                             ← Step 5
+│   │   │   ├── MonitorApiTest.php              ← Step 5
+│   │   │   └── PlaybackApiTest.php             ← Step 7
 │   │   └── Console/
 │   │       └── ImportLegacySignageTest.php     ← Step 4
+│   │   └── Media/
+│   │       └── MediaRouteTest.php              ← Step 7
 │   ├── Unit/
-│   │   └── Services/Import/
-│   │       └── CsvReaderTest.php               ← Step 4
-│   │   └── Services/Playlist/
-│   │       ├── IpNormalizerTest.php            ← Step 6
-│   │       └── PlaylistResolverTest.php        ← Step 6
+│   │   └── Services/
+│   │       ├── Import/                         ← Step 6
+│   │           └── CsvReaderTest.php           ← Step 4
+│   │       ├── Playlist/                       ← Step 6
+│   │       │   ├── IpNormalizerTest.php
+│   │       │   └── PlaylistResolverTest.php
+│   │       └── Support/
+│   │           └── PersianDateTest.php         ← Step 7
+
 │   ├── Pest.php
 │   └── TestCase.php
 ├── .env.example
@@ -280,6 +302,22 @@ docker-compose exec app composer dump-autoload 2>&1 \
 - **Comment in `.env.example`, unset by default**: optional knobs (`SAIL_IMAGE`, `HEALTH_*`, `VITE_PORT`)
 - **Never committed**: `SAIL_BUILD_PROXY`, `SAIL_BUILD_NETWORK`, `WWWUSER`, `WWWGROUP` — local-only
 - **Never in `.env.example`**: `SUPERVISOR_PHP_COMMAND`, `SUPERVISOR_PHP_USER` — Dockerfile `ENV`, not Compose vars
+
+
+### Where do routes live?
+
+| File | Loaded by | Middleware |
+|---|---|---|
+| `routes/web.php` | `bootstrap/app.php` → `withRouting(web:)` | `web` group |
+| `routes/api.php` | `bootstrap/app.php` → `withRouting(api:)` | `api` group |
+| `routes/console.php` | `bootstrap/app.php` → `withRouting(commands:)` | — |
+| `routes/media.php` | `MediaRouteServiceProvider` | none (empty group) |
+| `/up` | `bootstrap/app.php` → `then:` | none (inline) |
+
+**Adding a route:** edit the file that matches its concern. Adding a new
+route file requires either a `then:` block in `bootstrap/app.php` or a
+dedicated ServiceProvider (see ADR-0004).
+
 
 ---
 
@@ -432,6 +470,10 @@ Generated CSVs are written to `storage/app/legacy/export/` which is gitignored.
 | Share/base pairing — independent or paired? | Independent allow-lists | `PlaylistResolver::hasShareLink` + TODO |
 | Date filter — fixed or preserved? | **Fixed** | ADR-0002 |
 | IP variant matching — how many loopback forms? | 3 (`127.0.0.1`, `::1`, `::ffff:127.0.0.1`) | `IpNormalizer::variants` |
+| `UploadeDateTime` when `uploaded_at` is null | Falls back to `created_at` | PlaylistResolver::toItem |
+| Empty playlist `ResultCode` | `4000` (same as success) | PlaybackController — one line to change if distinct code required |
+| `ContentTypeText` for URL type (5) | `آدرس` | ContentType::labelFa() |
+| `?ip=` override path | `local`/`development`/`testing` only | ADR-0005 |
 
 
 ### Known TODOs in code
