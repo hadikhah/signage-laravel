@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Content;
 use App\Models\ShareContent;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -18,7 +19,12 @@ class ShareContentFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'content_id' => Content::factory(),
         ];
+    }
+
+    public function forContents(Content $content)
+    {
+        return $this->state(fn() => ['content_id' => $content->id]);
     }
 }

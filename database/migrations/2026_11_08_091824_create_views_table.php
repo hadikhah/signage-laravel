@@ -13,7 +13,12 @@ return new class extends Migration
     {
         Schema::create('views', function (Blueprint $table) {
             $table->id();
+
+            $table->string('name');
+
             $table->timestamps();
+
+            $table->index('name');
         });
     }
 

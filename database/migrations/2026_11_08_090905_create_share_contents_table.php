@@ -14,11 +14,9 @@ return new class extends Migration {
 
             $table->id();
 
-            $table->foreignId('content_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('content_id')->constrained('contents')->cascadeOnDelete();
 
             $table->timestamps();
-
-            $table->index('content_id');
 
         });
     }

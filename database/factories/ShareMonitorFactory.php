@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Monitor;
 use App\Models\ShareMonitor;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -18,7 +19,12 @@ class ShareMonitorFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'monitor_id' => Monitor::factory(),
         ];
+    }
+
+    public function forMonitor(Monitor $monitor): static
+    {
+        return $this->state(fn() => ['monitor_id' => $monitor->id]);
     }
 }

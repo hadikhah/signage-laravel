@@ -13,6 +13,15 @@ return new class extends Migration
     {
         Schema::create('monitor_views', function (Blueprint $table) {
             $table->id();
+
+            $table->foreignId('monitor_id')
+                ->constrained('monitors')
+                ->cascadeOnDelete();
+
+            $table->foreignId('view_id')
+                ->constrained('views')
+                ->cascadeOnDelete();
+
             $table->timestamps();
         });
     }

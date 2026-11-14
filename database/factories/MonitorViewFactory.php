@@ -2,7 +2,9 @@
 
 namespace Database\Factories;
 
+use App\Models\Monitor;
 use App\Models\MonitorView;
+use App\Models\View;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -18,7 +20,16 @@ class MonitorViewFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'monitor_id' => Monitor::factory(),
+            'view_id'    => View::factory(),
         ];
+    }
+
+    public function forMonitorAndView(Monitor $monitor, View $view): static
+    {
+        return $this->state(fn() => [
+            'monitor_id' => $monitor->id,
+            'view_id'    => $view->id,
+        ]);
     }
 }
