@@ -25,6 +25,6 @@ class ShareContentFactory extends Factory
 
     public function forContents(Content $content)
     {
-        return $this->state(fn() => ['content_id' => $content->id]);
+        return $this->state(fn () => ['content_id' => $content->id]);
     }
 }

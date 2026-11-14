@@ -15,29 +15,29 @@ class MonitorResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            "Id" => $this->id,
+            'Id' => $this->id,
 
             'IpAddress' => $this->ip_address,
 
-            "HostName" => $this->host_name,
+            'HostName' => $this->host_name,
 
-            "DepartmentId" => $this->department_id,
+            'DepartmentId' => $this->department_id,
 
-            "MacAddress" => $this->mac_address,
+            'MacAddress' => $this->mac_address,
 
-            "Floor" => $this->floor,
+            'Floor' => $this->floor,
 
-            "Wing" => $this->wing,
+            'Wing' => $this->wing,
 
-            "Status" => $this->status,
+            'Status' => $this->status,
 
-            "Lock" => $this->lock,
+            'Lock' => $this->lock,
 
-            "Description" => $this->description,
+            'Description' => $this->description,
 
-            "Platform" => $this->platform,
+            'Platform' => $this->platform,
 
-            "Owner" => $this->owner,
+            'Owner' => $this->owner,
 
         ];
     }

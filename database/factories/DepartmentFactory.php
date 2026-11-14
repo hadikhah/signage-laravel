@@ -31,7 +31,7 @@ class DepartmentFactory extends Factory
     /** Attach as a child of an existing department. */
     public function childOf(Department $parent): static
     {
-        return $this->state(fn() => [
+        return $this->state(fn () => [
             'parent_id' => $parent->id,
             'office_id' => $parent->office_id,
         ]);
@@ -40,7 +40,6 @@ class DepartmentFactory extends Factory
     /** Reuse an existing office. */
     public function inOffice(Office $office): static
     {
-        return $this->state(fn() => ['office_id' => $office->id]);
+        return $this->state(fn () => ['office_id' => $office->id]);
     }
-
 }

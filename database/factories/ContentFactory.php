@@ -20,7 +20,7 @@ class ContentFactory extends Factory
     {
         return [
             'content_name' => fake()->words(2, true),
-            'client_file_name' => fake()->optional(0.8)->slug(2) . '.' . fake()->randomElement(['jpg', 'png', 'mp4']),
+            'client_file_name' => fake()->optional(0.8)->slug(2).'.'.fake()->randomElement(['jpg', 'png', 'mp4']),
             'user_id' => User::factory(),
             // 1=image, 2=video, 3=text, 4=flash, 5=url
             'content_type' => fake()->numberBetween(1, 5),

@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use Database\Factories\ApplicationSettingFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class ApplicationSetting extends Model
 {
-    /** @use HasFactory<\Database\Factories\ApplicationSettingFactory> */
+    /** @use HasFactory<ApplicationSettingFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -17,9 +18,9 @@ class ApplicationSetting extends Model
     ];
 
     protected $casts = [
-        'bypass_all_content'  => 'boolean',
+        'bypass_all_content' => 'boolean',
         'active_base_content' => 'boolean',
-        'last_update'         => 'datetime',
+        'last_update' => 'datetime',
     ];
 
     /**
@@ -30,7 +31,7 @@ class ApplicationSetting extends Model
     public static function current(): self
     {
         return static::firstOrCreate([], [
-            'bypass_all_content'  => false,
+            'bypass_all_content' => false,
             'active_base_content' => false,
         ]);
     }

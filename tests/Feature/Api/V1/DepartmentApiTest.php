@@ -8,13 +8,13 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $city   = City::factory()->create();
+    $city = City::factory()->create();
     $office = Office::create(['name' => 'HQ', 'city_id' => $city->id]);
     foreach (range(1, 12) as $i) {
         Department::create([
             'department_name' => sprintf('Dept %02d', $i),
-            'office_id'       => $office->id,
-            'is_child'        => false,
+            'office_id' => $office->id,
+            'is_child' => false,
         ]);
     }
 });

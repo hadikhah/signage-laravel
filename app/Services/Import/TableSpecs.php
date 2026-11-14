@@ -110,6 +110,7 @@ final class TableSpecs
                 return $spec;
             }
         }
+
         return null;
     }
 }

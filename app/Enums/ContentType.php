@@ -10,18 +10,18 @@ enum ContentType: int
 {
     case Image = 1;
     case Video = 2;
-    case Text  = 3;
+    case Text = 3;
     case Flash = 4;
-    case Url   = 5;
+    case Url = 5;
 
     public function labelFa(): string
     {
         return match ($this) {
             self::Image => 'عکس',
             self::Video => 'فیلم',
-            self::Text  => 'متن',
+            self::Text => 'متن',
             self::Flash => 'فلش',
-            self::Url   => 'آدرس',
+            self::Url => 'آدرس',
         };
     }
 
@@ -30,9 +30,9 @@ enum ContentType: int
         return match ($this) {
             self::Image => 'Image',
             self::Video => 'Video',
-            self::Text  => 'Text',
+            self::Text => 'Text',
             self::Flash => 'Flash',
-            self::Url   => 'URL',
+            self::Url => 'URL',
         };
     }
 }

@@ -25,6 +25,6 @@ class BaseContentFactory extends Factory
 
     public function forContent(Content $content): static
     {
-        return $this->state(fn() => ['content_id' => $content->id]);
+        return $this->state(fn () => ['content_id' => $content->id]);
     }
 }

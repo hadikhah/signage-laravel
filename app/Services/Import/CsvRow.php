@@ -33,6 +33,7 @@ final readonly class CsvRow
                 $out[$col] = $this->values[$col];
             }
         }
+
         return $out;
     }
 }

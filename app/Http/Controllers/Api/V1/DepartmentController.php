@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\DepartmentResource;
 use App\Models\Department;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\Request;
 
 class DepartmentController extends Controller
 {
@@ -17,6 +16,7 @@ class DepartmentController extends Controller
     {
         return Department::query();
     }
+
     protected function resourceClass(): string
     {
         return DepartmentResource::class;
@@ -30,11 +30,11 @@ class DepartmentController extends Controller
     protected function sortableColumns(): array
     {
         return [
-            'Id'             => 'id',
+            'Id' => 'id',
             'DepartmentName' => 'department_name',
-            'IsChild'        => 'is_child',
-            'OfficeId'       => 'office_id',
-            'ParentId'       => 'parent_id',
+            'IsChild' => 'is_child',
+            'OfficeId' => 'office_id',
+            'ParentId' => 'parent_id',
         ];
     }
 }

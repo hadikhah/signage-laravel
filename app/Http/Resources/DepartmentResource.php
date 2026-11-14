@@ -16,19 +16,19 @@ class DepartmentResource extends JsonResource
     {
         return [
 
-            "Id" => $this->id,
+            'Id' => $this->id,
 
-            "DepartmentName" => $this->department_name,
+            'DepartmentName' => $this->department_name,
 
-            "DailyMessage" => $this->daily_message,
+            'DailyMessage' => $this->daily_message,
 
-            "IsChild" => (bool)$this->is_child,
+            'IsChild' => (bool) $this->is_child,
 
-            "lock" => $this->lock,
+            'lock' => $this->lock,
 
-            "PartentId" => $this->partent_id,
+            'PartentId' => $this->partent_id,
 
-            "OfficeId" => $this->office_id
+            'OfficeId' => $this->office_id,
 
         ];
     }

@@ -22,10 +22,10 @@ final class Envelope
     public static function paginated(LengthAwarePaginator $page, int $code = Codes::SUCCESS_LIST): array
     {
         return self::build($code, null, [
-            Codes::KEY_ITEMS       => $page->items(),
+            Codes::KEY_ITEMS => $page->items(),
             Codes::KEY_TOTAL_COUNT => $page->total(),
-            Codes::KEY_PAGE_INDEX  => $page->currentPage(),
-            Codes::KEY_ROW_NUMBER  => $page->perPage(),
+            Codes::KEY_PAGE_INDEX => $page->currentPage(),
+            Codes::KEY_ROW_NUMBER => $page->perPage(),
         ]);
     }
 
@@ -38,8 +38,8 @@ final class Envelope
     {
         return [
             Codes::KEY_RESULT_CODE => $code,
-            Codes::KEY_MESSAGE     => $message,
-            Codes::KEY_DATA        => $data,
+            Codes::KEY_MESSAGE => $message,
+            Codes::KEY_DATA => $data,
         ];
     }
 }

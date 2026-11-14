@@ -7,8 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\OfficeResource;
 use App\Models\Office;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\Request;
-use Override;
 
 class OfficeController extends Controller
 {
@@ -26,14 +24,14 @@ class OfficeController extends Controller
 
     public function searchableColumns(): array
     {
-        return ["name"];
+        return ['name'];
     }
 
     public function sortableColumns(): array
     {
         return [
-            'Id'     => 'id',
-            'Name'   => 'name',
+            'Id' => 'id',
+            'Name' => 'name',
             'CityId' => 'city_id',
         ];
     }

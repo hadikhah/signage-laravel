@@ -24,15 +24,15 @@ class PaginatedRequest extends FormRequest
     public function rules(): array
     {
         return [
-            "pageIndex" => ["nullable", "integer", "min:1"],
+            'pageIndex' => ['nullable', 'integer', 'min:1'],
 
-            "rowNumber" => ["nullable", "integer", "min:1", "max:200"],
+            'rowNumber' => ['nullable', 'integer', 'min:1', 'max:200'],
 
-            "search" => ["nullable", "string", "max:255"],
+            'search' => ['nullable', 'string', 'max:255'],
 
-            "sortBy" => ["nullable", "string", "max:64"],
+            'sortBy' => ['nullable', 'string', 'max:64'],
 
-            "sortDirection" => ["nullable", "string", "in:asc,desc,ASC,DESC"],
+            'sortDirection' => ['nullable', 'string', 'in:asc,desc,ASC,DESC'],
         ];
     }
 
@@ -49,12 +49,14 @@ class PaginatedRequest extends FormRequest
     public function searchTerm(): ?string
     {
         $v = $this->validated('search');
+
         return ($v === null || $v === '') ? null : (string) $v;
     }
 
     public function sortBy(): ?string
     {
         $v = $this->validated('sortBy');
+
         return ($v === null || $v === '') ? null : (string) $v;
     }
 

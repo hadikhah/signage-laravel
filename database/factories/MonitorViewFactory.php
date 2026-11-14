@@ -21,15 +21,15 @@ class MonitorViewFactory extends Factory
     {
         return [
             'monitor_id' => Monitor::factory(),
-            'view_id'    => View::factory(),
+            'view_id' => View::factory(),
         ];
     }
 
     public function forMonitorAndView(Monitor $monitor, View $view): static
     {
-        return $this->state(fn() => [
+        return $this->state(fn () => [
             'monitor_id' => $monitor->id,
-            'view_id'    => $view->id,
+            'view_id' => $view->id,
         ]);
     }
 }

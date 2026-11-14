@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\Import\ImportContext;
 use App\Services\Import\TableImporter;
+use App\Services\Import\TableSpec;
 use App\Services\Import\TableSpecs;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +25,8 @@ class ImportLegacySignage extends Command
         // Gate 1: --truncate must not run outside local/testing.
         if ($this->option('truncate') && ! app()->environment('local', 'testing')) {
             $this->error('--truncate is only allowed in local/testing environments.');
-            $this->line('Current environment: ' . app()->environment());
+            $this->line('Current environment: '.app()->environment());
+
             return self::FAILURE;
         }
 
@@ -34,12 +36,13 @@ class ImportLegacySignage extends Command
             && $this->input->isInteractive()
             && ! $this->confirm(
                 'WARNING: --truncate will DROP ALL ROWS from the target tables '
-                    . 'and CASCADE to related tables. This is destructive and DEV ONLY. '
-                    . 'Continue?',
+                    .'and CASCADE to related tables. This is destructive and DEV ONLY. '
+                    .'Continue?',
                 default: false,
             )
         ) {
             $this->warn('Import aborted.');
+
             return self::FAILURE;
         }
 
@@ -59,8 +62,8 @@ class ImportLegacySignage extends Command
         );
 
         $this->info("Path:   {$path}");
-        $this->info('Mode:   ' . ($ctx->dryRun ? 'DRY-RUN' : 'write'));
-        $this->info('Tables: ' . implode(', ', array_map(fn($s) => $s->table, $specs)));
+        $this->info('Mode:   '.($ctx->dryRun ? 'DRY-RUN' : 'write'));
+        $this->info('Tables: '.implode(', ', array_map(fn ($s) => $s->table, $specs)));
         $this->newLine();
 
         foreach ($specs as $spec) {
@@ -76,12 +79,13 @@ class ImportLegacySignage extends Command
                 ));
             } catch (RuntimeException $e) {
                 $this->error("  {$spec->table}: {$e->getMessage()}");
+
                 return self::FAILURE;
             }
         }
 
         if (! $ctx->dryRun) {
-            $this->resetPostgresSequences(array_map(fn($s) => $s->table, $specs));
+            $this->resetPostgresSequences(array_map(fn ($s) => $s->table, $specs));
         }
 
         $this->newLine();
@@ -96,16 +100,17 @@ class ImportLegacySignage extends Command
 
         if (! is_dir($path)) {
             $this->error("Import directory not found: {$path}");
+
             return null;
         }
 
         return rtrim($path, '/');
     }
 
-    /** @return \App\Services\Import\TableSpec[] */
+    /** @return TableSpec[] */
     private function resolveSpecs(): array
     {
-        $all  = TableSpecs::all();
+        $all = TableSpecs::all();
         $only = $this->option('only');
 
         if ($only === null || $only === '') {
@@ -113,16 +118,17 @@ class ImportLegacySignage extends Command
         }
 
         $requested = array_map('trim', explode(',', $only));
-        $known     = array_map(fn($s) => $s->table, $all);
-        $unknown   = array_diff($requested, $known);
+        $known = array_map(fn ($s) => $s->table, $all);
+        $unknown = array_diff($requested, $known);
 
         if ($unknown !== []) {
-            $this->error('Unknown table(s): ' . implode(', ', $unknown));
-            $this->line('Known: ' . implode(', ', $known));
+            $this->error('Unknown table(s): '.implode(', ', $unknown));
+            $this->line('Known: '.implode(', ', $known));
+
             return [];
         }
 
-        return array_values(array_filter($all, fn($s) => in_array($s->table, $requested, true)));
+        return array_values(array_filter($all, fn ($s) => in_array($s->table, $requested, true)));
     }
 
     /** @param string[] $tables */
@@ -135,13 +141,13 @@ class ImportLegacySignage extends Command
         foreach ($tables as $table) {
             DB::statement(sprintf(
                 "SELECT setval(pg_get_serial_sequence('%s', 'id'), "
-                    . "COALESCE((SELECT MAX(id) FROM \"%s\"), 0) + 1, false)",
+                    .'COALESCE((SELECT MAX(id) FROM "%s"), 0) + 1, false)',
                 $table,
                 $table,
             ));
         }
 
-        $this->line('Sequences reset: ' . implode(', ', $tables));
+        $this->line('Sequences reset: '.implode(', ', $tables));
     }
 
     private function summarize(ImportContext $ctx): void

@@ -25,6 +25,6 @@ class ShareMonitorFactory extends Factory
 
     public function forMonitor(Monitor $monitor): static
     {
-        return $this->state(fn() => ['monitor_id' => $monitor->id]);
+        return $this->state(fn () => ['monitor_id' => $monitor->id]);
     }
 }

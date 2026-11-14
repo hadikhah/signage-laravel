@@ -40,235 +40,238 @@ use Illuminate\Support\Facades\DB;
  */
 final class PlaylistResolver
 {
-	public function __construct(private readonly IpNormalizer $ipNormalizer) {}
+    public function __construct(private readonly IpNormalizer $ipNormalizer) {}
 
-	public function forMonitor(string $ip, ?string $view): Playlist
-	{
-		$monitor = $this->findMonitor($ip);
-		if ($monitor === null) {
-			return Playlist::empty();
-		}
+    public function forMonitor(string $ip, ?string $view): Playlist
+    {
+        $monitor = $this->findMonitor($ip);
+        if ($monitor === null) {
+            return Playlist::empty();
+        }
 
-		$settings = ApplicationSetting::current();
+        $settings = ApplicationSetting::current();
 
-		if ($settings->bypass_all_content && $this->hasShareLink($monitor)) {
-			return $this->buildBypassPlaylist($monitor);
-		}
+        if ($settings->bypass_all_content && $this->hasShareLink($monitor)) {
+            return $this->buildBypassPlaylist($monitor);
+        }
 
-		if ($this->viewIsValid($view)) {
-			return $this->buildViewPlaylist($monitor, $view);
-		}
+        if ($this->viewIsValid($view)) {
+            return $this->buildViewPlaylist($monitor, $view);
+        }
 
-		return $this->buildDefaultPlaylist($monitor, $settings);
-	}
+        return $this->buildDefaultPlaylist($monitor, $settings);
+    }
 
-	// -------------------------------------------------------------------------
-	// Rule 2 — bypass / share
-	// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // Rule 2 — bypass / share
+    // -------------------------------------------------------------------------
 
-	private function buildBypassPlaylist(Monitor $monitor): Playlist
-	{
-		$ids = DB::table('share_contents')->pluck('content_id')->all();
+    private function buildBypassPlaylist(Monitor $monitor): Playlist
+    {
+        $ids = DB::table('share_contents')->pluck('content_id')->all();
 
-		$items = $this->loadContentsByIds($ids)
-			->map(fn(Content $c) => $this->toItem($c, displayTime: 0))
-			->values()
-			->all();
+        $items = $this->loadContentsByIds($ids)
+            ->map(fn (Content $c) => $this->toItem($c, displayTime: 0))
+            ->values()
+            ->all();
 
-		return new Playlist(
-			items: $items,
-			monitor: $monitor,
-			bypassAllContent: true,
-			isMonitorContent: false,
-			dailyMessage: '',
-		);
-	}
+        return new Playlist(
+            items: $items,
+            monitor: $monitor,
+            bypassAllContent: true,
+            isMonitorContent: false,
+            dailyMessage: '',
+        );
+    }
 
-	// -------------------------------------------------------------------------
-	// Rule 3 — view
-	// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // Rule 3 — view
+    // -------------------------------------------------------------------------
 
-	private function buildViewPlaylist(Monitor $monitor, string $view): Playlist
-	{
-		// Precise lookup: view with this name must belong to this monitor.
-		$viewModel = View::query()
-			->where('name', $view)
-			->whereHas('monitors', fn($q) => $q->where('monitors.id', $monitor->id))
-			->first();
+    private function buildViewPlaylist(Monitor $monitor, string $view): Playlist
+    {
+        // Precise lookup: view with this name must belong to this monitor.
+        $viewModel = View::query()
+            ->where('name', $view)
+            ->whereHas('monitors', fn ($q) => $q->where('monitors.id', $monitor->id))
+            ->first();
 
-		if ($viewModel === null) {
-			return Playlist::empty();
-		}
+        if ($viewModel === null) {
+            return Playlist::empty();
+        }
 
-		$rows = DB::table('contents')
-			->join('view_contents', 'view_contents.content_id', '=', 'contents.id')
-			->join('monitor_contents', function ($j) use ($monitor) {
-				$j->on('monitor_contents.content_id', '=', 'contents.id')
-					->where('monitor_contents.monitor_id', '=', $monitor->id)
-					->where('monitor_contents.active', '=', true);
-			})
-			->where('view_contents.view_id', '=', $viewModel->id)
-			->where('contents.deleted', '=', false)
-			->where(function ($q) {
-				$today = now()->toDateString();
-				$q->whereNull('contents.from_date')->orWhere('contents.from_date', '<=', $today);
-			})
-			->where(function ($q) {
-				$today = now()->toDateString();
-				$q->whereNull('contents.to_date')->orWhere('contents.to_date', '>=', $today);
-			})
-			->select([
-				'contents.*',
-				'monitor_contents.display_time as mc_display_time',
-			])
-			->orderBy('monitor_contents.content_order')
-			->orderBy('contents.order')
-			->orderBy('contents.id')
-			->get();
+        $rows = DB::table('contents')
+            ->join('view_contents', 'view_contents.content_id', '=', 'contents.id')
+            ->join('monitor_contents', function ($j) use ($monitor) {
+                $j->on('monitor_contents.content_id', '=', 'contents.id')
+                    ->where('monitor_contents.monitor_id', '=', $monitor->id)
+                    ->where('monitor_contents.active', '=', true);
+            })
+            ->where('view_contents.view_id', '=', $viewModel->id)
+            ->where('contents.deleted', '=', false)
+            ->where(function ($q) {
+                $today = now()->toDateString();
+                $q->whereNull('contents.from_date')->orWhere('contents.from_date', '<=', $today);
+            })
+            ->where(function ($q) {
+                $today = now()->toDateString();
+                $q->whereNull('contents.to_date')->orWhere('contents.to_date', '>=', $today);
+            })
+            ->select([
+                'contents.*',
+                'monitor_contents.display_time as mc_display_time',
+            ])
+            ->orderBy('monitor_contents.content_order')
+            ->orderBy('contents.order')
+            ->orderBy('contents.id')
+            ->get();
 
-		$items = $rows->map(function ($row) {
-			$content = Content::with(['contentUrlUserPassword', 'user'])->find($row->id);
-			return $this->toItem($content, displayTime: (int) $row->mc_display_time);
-		})->values()->all();
+        $items = $rows->map(function ($row) {
+            $content = Content::with(['contentUrlUserPassword', 'user'])->find($row->id);
 
-		return new Playlist(
-			items: $items,
-			monitor: $monitor,
-			bypassAllContent: false,
-			isMonitorContent: false, // source is view, not monitor's own playlist (TODO)
-			dailyMessage: $this->dailyMessageFor($monitor),
-		);
-	}
+            return $this->toItem($content, displayTime: (int) $row->mc_display_time);
+        })->values()->all();
 
-	// -------------------------------------------------------------------------
-	// Rules 4 + 5 — default + base append
-	// -------------------------------------------------------------------------
+        return new Playlist(
+            items: $items,
+            monitor: $monitor,
+            bypassAllContent: false,
+            isMonitorContent: false, // source is view, not monitor's own playlist (TODO)
+            dailyMessage: $this->dailyMessageFor($monitor),
+        );
+    }
 
-	private function buildDefaultPlaylist(Monitor $monitor, ApplicationSetting $settings): Playlist
-	{
-		$rows = DB::table('contents')
-			->join('monitor_contents', 'monitor_contents.content_id', '=', 'contents.id')
-			->where('monitor_contents.monitor_id', '=', $monitor->id)
-			->where('monitor_contents.active', '=', true)
-			->where('contents.deleted', '=', false)
-			->where(function ($q) {
-				$today = now()->toDateString();
-				$q->whereNull('contents.from_date')->orWhere('contents.from_date', '<=', $today);
-			})
-			->where(function ($q) {
-				$today = now()->toDateString();
-				$q->whereNull('contents.to_date')->orWhere('contents.to_date', '>=', $today);
-			})
-			->select([
-				'contents.*',
-				'monitor_contents.display_time as mc_display_time',
-			])
-			->orderBy('monitor_contents.content_order')
-			->orderBy('contents.order')
-			->orderBy('contents.id')
-			->get();
+    // -------------------------------------------------------------------------
+    // Rules 4 + 5 — default + base append
+    // -------------------------------------------------------------------------
 
-		$items = $rows->map(function ($row) {
-			$content = Content::with(['contentUrlUserPassword', 'user'])->find($row->id);
-			return $this->toItem($content, displayTime: (int) $row->mc_display_time);
-		})->values()->all();
+    private function buildDefaultPlaylist(Monitor $monitor, ApplicationSetting $settings): Playlist
+    {
+        $rows = DB::table('contents')
+            ->join('monitor_contents', 'monitor_contents.content_id', '=', 'contents.id')
+            ->where('monitor_contents.monitor_id', '=', $monitor->id)
+            ->where('monitor_contents.active', '=', true)
+            ->where('contents.deleted', '=', false)
+            ->where(function ($q) {
+                $today = now()->toDateString();
+                $q->whereNull('contents.from_date')->orWhere('contents.from_date', '<=', $today);
+            })
+            ->where(function ($q) {
+                $today = now()->toDateString();
+                $q->whereNull('contents.to_date')->orWhere('contents.to_date', '>=', $today);
+            })
+            ->select([
+                'contents.*',
+                'monitor_contents.display_time as mc_display_time',
+            ])
+            ->orderBy('monitor_contents.content_order')
+            ->orderBy('contents.order')
+            ->orderBy('contents.id')
+            ->get();
 
-		// Rule 5: append base when active_base_content is on and monitor is in base_monitors
-		if ($settings->active_base_content && $this->hasBaseLink($monitor)) {
-			$baseIds = DB::table('base_contents')->pluck('content_id')->all();
-			$baseItems = $this->loadContentsByIds($baseIds)
-				->map(fn(Content $c) => $this->toItem($c, displayTime: 0))
-				->values()
-				->all();
-			$items = array_merge($items, $baseItems);
-		}
+        $items = $rows->map(function ($row) {
+            $content = Content::with(['contentUrlUserPassword', 'user'])->find($row->id);
 
-		return new Playlist(
-			items: $items,
-			monitor: $monitor,
-			bypassAllContent: false,
-			isMonitorContent: true,
-			dailyMessage: $this->dailyMessageFor($monitor),
-		);
-	}
+            return $this->toItem($content, displayTime: (int) $row->mc_display_time);
+        })->values()->all();
 
-	// -------------------------------------------------------------------------
-	// Helpers
-	// -------------------------------------------------------------------------
+        // Rule 5: append base when active_base_content is on and monitor is in base_monitors
+        if ($settings->active_base_content && $this->hasBaseLink($monitor)) {
+            $baseIds = DB::table('base_contents')->pluck('content_id')->all();
+            $baseItems = $this->loadContentsByIds($baseIds)
+                ->map(fn (Content $c) => $this->toItem($c, displayTime: 0))
+                ->values()
+                ->all();
+            $items = array_merge($items, $baseItems);
+        }
 
-	private function findMonitor(string $ip): ?Monitor
-	{
+        return new Playlist(
+            items: $items,
+            monitor: $monitor,
+            bypassAllContent: false,
+            isMonitorContent: true,
+            dailyMessage: $this->dailyMessageFor($monitor),
+        );
+    }
 
-		$ips = config('signage.expand_loopback_variants')
-			? $this->ipNormalizer->variants($ip)
-			: [$this->ipNormalizer->normalize($ip)];
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
 
-		return Monitor::query()
-			->whereIn('ip_address', $ips)
-			->first();
-	}
+    private function findMonitor(string $ip): ?Monitor
+    {
 
-	private function viewIsValid(?string $view): bool
-	{
-		return $view !== null && $view !== '' && $view !== 'undefined';
-	}
+        $ips = config('signage.expand_loopback_variants')
+            ? $this->ipNormalizer->variants($ip)
+            : [$this->ipNormalizer->normalize($ip)];
 
-	private function hasShareLink(Monitor $monitor): bool
-	{
-		return DB::table('share_monitors')->where('monitor_id', $monitor->id)->exists();
-	}
+        return Monitor::query()
+            ->whereIn('ip_address', $ips)
+            ->first();
+    }
 
-	private function hasBaseLink(Monitor $monitor): bool
-	{
-		return DB::table('base_monitors')->where('monitor_id', $monitor->id)->exists();
-	}
+    private function viewIsValid(?string $view): bool
+    {
+        return $view !== null && $view !== '' && $view !== 'undefined';
+    }
 
-	private function dailyMessageFor(Monitor $monitor): string
-	{
-		$monitor->loadMissing('department');
-		return (string) ($monitor->department?->daily_message ?? '');
-	}
+    private function hasShareLink(Monitor $monitor): bool
+    {
+        return DB::table('share_monitors')->where('monitor_id', $monitor->id)->exists();
+    }
 
-	private function loadContentsByIds(array $ids)
-	{
-		return Content::query()
-			->with(['contentUrlUserPassword', 'user'])
-			->whereIn('id', $ids)
-			->where('deleted', false)
-			->where(function ($q) {
-				$today = now()->toDateString();
-				$q->whereNull('from_date')->orWhere('from_date', '<=', $today);
-			})
-			->where(function ($q) {
-				$today = now()->toDateString();
-				$q->whereNull('to_date')->orWhere('to_date', '>=', $today);
-			})
-			->orderBy('order')
-			->orderBy('id')
-			->get();
-	}
+    private function hasBaseLink(Monitor $monitor): bool
+    {
+        return DB::table('base_monitors')->where('monitor_id', $monitor->id)->exists();
+    }
 
-	private function toItem(Content $content, int $displayTime): PlaylistItem
-	{
-		$isUrl = $content->content_type === ContentType::Url->value;
-		$cred  = $content->contentUrlUserPassword;
+    private function dailyMessageFor(Monitor $monitor): string
+    {
+        $monitor->loadMissing('department');
 
-		return new PlaylistItem(
-			contentId: $content->id,
-			contentName: (string) $content->content_name,
-			userId: $content->user_id,
-			userName: $content->user?->name,
-			contentType: (int) $content->content_type,
-			contentPath: $isUrl ? null : "/media/files/{$content->id}/{$content->content_name}",
-			clientFileName: $content->client_file_name,
-			fromDate: $content->from_date,
-			toDate: $content->to_date,
-			displayTime: $displayTime,
-			active: true,
-			url: $isUrl ? $cred?->url : null,
-			urlUserName: $isUrl ? $cred?->user_name : null,
-			urlPassword: $isUrl ? $cred?->password : null,
-			isAutoLogin: $isUrl ? (bool) $content->is_auto_login : null,
-		);
-	}
+        return (string) ($monitor->department?->daily_message ?? '');
+    }
+
+    private function loadContentsByIds(array $ids)
+    {
+        return Content::query()
+            ->with(['contentUrlUserPassword', 'user'])
+            ->whereIn('id', $ids)
+            ->where('deleted', false)
+            ->where(function ($q) {
+                $today = now()->toDateString();
+                $q->whereNull('from_date')->orWhere('from_date', '<=', $today);
+            })
+            ->where(function ($q) {
+                $today = now()->toDateString();
+                $q->whereNull('to_date')->orWhere('to_date', '>=', $today);
+            })
+            ->orderBy('order')
+            ->orderBy('id')
+            ->get();
+    }
+
+    private function toItem(Content $content, int $displayTime): PlaylistItem
+    {
+        $isUrl = $content->content_type === ContentType::Url->value;
+        $cred = $content->contentUrlUserPassword;
+
+        return new PlaylistItem(
+            contentId: $content->id,
+            contentName: (string) $content->content_name,
+            userId: $content->user_id,
+            userName: $content->user?->name,
+            contentType: (int) $content->content_type,
+            contentPath: $isUrl ? null : "/media/files/{$content->id}/{$content->content_name}",
+            clientFileName: $content->client_file_name,
+            fromDate: $content->from_date,
+            toDate: $content->to_date,
+            displayTime: $displayTime,
+            active: true,
+            url: $isUrl ? $cred?->url : null,
+            urlUserName: $isUrl ? $cred?->user_name : null,
+            urlPassword: $isUrl ? $cred?->password : null,
+            isAutoLogin: $isUrl ? (bool) $content->is_auto_login : null,
+        );
+    }
 }

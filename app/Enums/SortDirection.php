@@ -4,7 +4,7 @@ namespace App\Enums;
 
 enum SortDirection: string
 {
-    case Asc  = 'asc';
+    case Asc = 'asc';
     case Desc = 'desc';
 
     public static function fromInput(?string $input): self

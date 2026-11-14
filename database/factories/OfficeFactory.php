@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Models\City;
 use App\Models\Department;
 use App\Models\Office;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -32,13 +31,12 @@ class OfficeFactory extends Factory
 
         ];
 
-
     }
 
     /** Attach as a child of an existing department. Sets is_child=true. */
     public function childOf(Department $parent): static
     {
-        return $this->state(fn() => [
+        return $this->state(fn () => [
             'parent_id' => $parent->id,
             'office_id' => $parent->office_id,
             'is_child' => true,
@@ -48,7 +46,7 @@ class OfficeFactory extends Factory
     /** Explicit top-level — clears parent_id and is_child. */
     public function topLevel(): static
     {
-        return $this->state(fn() => [
+        return $this->state(fn () => [
             'parent_id' => null,
             'is_child' => false,
         ]);
@@ -57,7 +55,6 @@ class OfficeFactory extends Factory
     /** Reuse an existing office. */
     public function inOffice(Office $office): static
     {
-        return $this->state(fn() => ['office_id' => $office->id]);
+        return $this->state(fn () => ['office_id' => $office->id]);
     }
-
 }

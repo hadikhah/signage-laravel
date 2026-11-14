@@ -12,27 +12,28 @@ use App\Services\Playlist\IpNormalizer;
 use App\Services\Playlist\PlaylistResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\TestCase;
 
-uses(Tests\TestCase::class, RefreshDatabase::class);
+uses(TestCase::class, RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->resolver = new PlaylistResolver(new IpNormalizer());
+    $this->resolver = new PlaylistResolver(new IpNormalizer);
 
-    $this->city   = City::factory()->create();
+    $this->city = City::factory()->create();
     $this->office = Office::create(['name' => 'HQ', 'city_id' => $this->city->id]);
-    $this->dept   = Department::create([
+    $this->dept = Department::create([
         'department_name' => 'IT',
-        'office_id'       => $this->office->id,
-        'is_child'        => false,
-        'daily_message'   => 'Welcome to IT',
+        'office_id' => $this->office->id,
+        'is_child' => false,
+        'daily_message' => 'Welcome to IT',
     ]);
 
     ApplicationSetting::query()->delete();
     ApplicationSetting::create([
-        'id'                  => 1,
-        'bypass_all_content'  => false,
+        'id' => 1,
+        'bypass_all_content' => false,
         'active_base_content' => false,
-        'last_update'         => null,
+        'last_update' => null,
     ]);
 });
 
@@ -43,20 +44,21 @@ beforeEach(function () {
 function makeMonitor(array $overrides = []): Monitor
 {
     $dept = Department::first();
+
     return Monitor::create(array_merge([
-        'ip_address'    => '10.0.0.' . random_int(1, 250),
+        'ip_address' => '10.0.0.'.random_int(1, 250),
         'department_id' => $dept->id,
-        'status'        => 'online',
+        'status' => 'online',
     ], $overrides));
 }
 
 function makeContent(array $overrides = []): Content
 {
     return Content::factory()->create(array_merge([
-        'deleted'      => false,
-        'order'        => 0,
-        'from_date'    => null,
-        'to_date'      => null,
+        'deleted' => false,
+        'order' => 0,
+        'from_date' => null,
+        'to_date' => null,
         'content_type' => 1,
     ], $overrides));
 }
@@ -64,11 +66,11 @@ function makeContent(array $overrides = []): Content
 function attachMonitorContent(Monitor $m, Content $c, array $overrides = []): MonitorContent
 {
     return MonitorContent::create(array_merge([
-        'monitor_id'    => $m->id,
-        'content_id'    => $c->id,
+        'monitor_id' => $m->id,
+        'content_id' => $c->id,
         'content_order' => 1,
-        'display_time'  => 10,
-        'active'        => true,
+        'display_time' => 10,
+        'active' => true,
     ], $overrides));
 }
 
@@ -76,7 +78,7 @@ function linkViewToMonitor(Monitor $m, View $v): void
 {
     DB::table('monitor_views')->insert([
         'monitor_id' => $m->id,
-        'view_id'    => $v->id,
+        'view_id' => $v->id,
         'created_at' => now(),
         'updated_at' => now(),
     ]);
@@ -99,7 +101,7 @@ it('returns an empty playlist when the IP is unknown', function () {
 // -----------------------------------------------------------------------------
 
 it('returns the monitor active monitor_contents by default', function () {
-    $m  = makeMonitor(['ip_address' => '10.0.0.1']);
+    $m = makeMonitor(['ip_address' => '10.0.0.1']);
     $c1 = makeContent(['content_name' => 'a.jpg', 'order' => 1]);
     $c2 = makeContent(['content_name' => 'b.jpg', 'order' => 2]);
     attachMonitorContent($m, $c1, ['content_order' => 1, 'display_time' => 5]);
@@ -118,7 +120,7 @@ it('returns the monitor active monitor_contents by default', function () {
 });
 
 it('excludes inactive monitor_contents', function () {
-    $m  = makeMonitor(['ip_address' => '10.0.0.1']);
+    $m = makeMonitor(['ip_address' => '10.0.0.1']);
     $c1 = makeContent();
     $c2 = makeContent();
     attachMonitorContent($m, $c1, ['active' => true]);
@@ -131,7 +133,7 @@ it('excludes inactive monitor_contents', function () {
 });
 
 it('orders by content_order, then contents.order, then id', function () {
-    $m  = makeMonitor(['ip_address' => '10.0.0.1']);
+    $m = makeMonitor(['ip_address' => '10.0.0.1']);
     $c1 = makeContent(['order' => 5]);
     $c2 = makeContent(['order' => 1]);
     $c3 = makeContent(['order' => 3]);
@@ -140,7 +142,7 @@ it('orders by content_order, then contents.order, then id', function () {
     attachMonitorContent($m, $c3, ['content_order' => 1]);
 
     $playlist = $this->resolver->forMonitor('10.0.0.1', null);
-    $ids = array_map(fn($i) => $i->contentId, $playlist->items);
+    $ids = array_map(fn ($i) => $i->contentId, $playlist->items);
 
     expect($ids)->toBe([$c2->id, $c3->id, $c1->id]);
 });
@@ -152,7 +154,7 @@ it('orders by content_order, then contents.order, then id', function () {
 it('returns share_contents when bypass is on and monitor is in share_monitors', function () {
     ApplicationSetting::current()->update(['bypass_all_content' => true]);
 
-    $m  = makeMonitor(['ip_address' => '10.0.0.1']);
+    $m = makeMonitor(['ip_address' => '10.0.0.1']);
     $c1 = makeContent(['content_name' => 'shared.jpg']);
     DB::table('share_monitors')->insert([
         'monitor_id' => $m->id,
@@ -192,16 +194,15 @@ it('does not expand loopback variants in production (::1 monitor, 127.0.0.1 requ
     expect($this->resolver->forMonitor('127.0.0.1', null)->isEmpty())->toBeTrue();
 });
 
-
 // -----------------------------------------------------------------------------
 // Rule 3 — view
 // -----------------------------------------------------------------------------
 
 it('returns view_contents when the view belongs to the monitor', function () {
-    $m    = makeMonitor(['ip_address' => '10.0.0.1']);
+    $m = makeMonitor(['ip_address' => '10.0.0.1']);
     $view = View::create(['name' => 'morning']);
-    $c1   = makeContent(['content_name' => 'v1.jpg']);
-    $c2   = makeContent(['content_name' => 'v2.jpg']);
+    $c1 = makeContent(['content_name' => 'v1.jpg']);
+    $c2 = makeContent(['content_name' => 'v2.jpg']);
 
     linkViewToMonitor($m, $view);
     DB::table('view_contents')->insert([
@@ -220,10 +221,10 @@ it('returns view_contents when the view belongs to the monitor', function () {
 });
 
 it('view excludes contents whose monitor_contents is inactive', function () {
-    $m    = makeMonitor(['ip_address' => '10.0.0.1']);
+    $m = makeMonitor(['ip_address' => '10.0.0.1']);
     $view = View::create(['name' => 'morning']);
-    $c1   = makeContent();
-    $c2   = makeContent();
+    $c1 = makeContent();
+    $c2 = makeContent();
 
     linkViewToMonitor($m, $view);
     DB::table('view_contents')->insert([
@@ -240,10 +241,10 @@ it('view excludes contents whose monitor_contents is inactive', function () {
 });
 
 it('returns empty playlist when the view does not belong to this monitor', function () {
-    $m         = makeMonitor(['ip_address' => '10.0.0.1']);
-    $otherM    = makeMonitor(['ip_address' => '10.0.0.2']);
-    $view      = View::create(['name' => 'morning']);
-    $c1        = makeContent();
+    $m = makeMonitor(['ip_address' => '10.0.0.1']);
+    $otherM = makeMonitor(['ip_address' => '10.0.0.2']);
+    $view = View::create(['name' => 'morning']);
+    $c1 = makeContent();
     linkViewToMonitor($otherM, $view);   // linked to OTHER monitor
     DB::table('view_contents')->insert([
         'view_id' => $view->id,
@@ -260,7 +261,7 @@ it('returns empty playlist when the view does not belong to this monitor', funct
 });
 
 it('treats "undefined" and empty views as no view', function () {
-    $m  = makeMonitor(['ip_address' => '10.0.0.1']);
+    $m = makeMonitor(['ip_address' => '10.0.0.1']);
     $c1 = makeContent();
     attachMonitorContent($m, $c1);
 
@@ -277,7 +278,7 @@ it('treats "undefined" and empty views as no view', function () {
 it('appends base_contents to the default playlist when active_base_content is on', function () {
     ApplicationSetting::current()->update(['active_base_content' => true]);
 
-    $m  = makeMonitor(['ip_address' => '10.0.0.1']);
+    $m = makeMonitor(['ip_address' => '10.0.0.1']);
     $mc = makeContent(['content_name' => 'own.jpg', 'order' => 1]);
     $bc = makeContent(['content_name' => 'base.jpg', 'order' => 2]);
     attachMonitorContent($m, $mc);
@@ -301,7 +302,7 @@ it('appends base_contents to the default playlist when active_base_content is on
 });
 
 it('does not append base when active_base_content is off', function () {
-    $m  = makeMonitor(['ip_address' => '10.0.0.1']);
+    $m = makeMonitor(['ip_address' => '10.0.0.1']);
     $mc = makeContent();
     $bc = makeContent();
     attachMonitorContent($m, $mc);
@@ -327,8 +328,8 @@ it('does not append base when active_base_content is off', function () {
 // -----------------------------------------------------------------------------
 
 it('excludes deleted content even when to_date is in the future (fixed precedence, ADR-0002)', function () {
-    $m   = makeMonitor(['ip_address' => '10.0.0.1']);
-    $ok  = makeContent(['deleted' => false, 'to_date' => now()->addYear()->toDateString()]);
+    $m = makeMonitor(['ip_address' => '10.0.0.1']);
+    $ok = makeContent(['deleted' => false, 'to_date' => now()->addYear()->toDateString()]);
     $del = makeContent(['deleted' => true,  'to_date' => now()->addYear()->toDateString()]);
     attachMonitorContent($m, $ok, ['content_order' => 1]);
     attachMonitorContent($m, $del, ['content_order' => 2]);
@@ -340,9 +341,9 @@ it('excludes deleted content even when to_date is in the future (fixed precedenc
 });
 
 it('excludes content outside the from_date window', function () {
-    $m      = makeMonitor(['ip_address' => '10.0.0.1']);
+    $m = makeMonitor(['ip_address' => '10.0.0.1']);
     $future = makeContent(['from_date' => now()->addMonth()->toDateString()]);
-    $past   = makeContent(['from_date' => now()->subMonth()->toDateString()]);
+    $past = makeContent(['from_date' => now()->subMonth()->toDateString()]);
     attachMonitorContent($m, $future);
     attachMonitorContent($m, $past);
 
@@ -353,8 +354,8 @@ it('excludes content outside the from_date window', function () {
 });
 
 it('excludes content outside the to_date window', function () {
-    $m        = makeMonitor(['ip_address' => '10.0.0.1']);
-    $expired  = makeContent(['to_date' => now()->subDay()->toDateString()]);
+    $m = makeMonitor(['ip_address' => '10.0.0.1']);
+    $expired = makeContent(['to_date' => now()->subDay()->toDateString()]);
     $inWindow = makeContent(['to_date' => now()->addDay()->toDateString()]);
     attachMonitorContent($m, $expired, ['content_order' => 1]);
     attachMonitorContent($m, $inWindow, ['content_order' => 2]);
@@ -372,7 +373,6 @@ it('excludes content outside the to_date window', function () {
 it('resolves a monitor stored as ::1 when the request comes from 127.0.0.1', function () {
 
     config(['signage.expand_loopback_variants' => true]);
-
 
     $m = makeMonitor(['ip_address' => '::1']);
     $c = makeContent();
@@ -399,20 +399,19 @@ it('returns an empty items list when a monitor has no contents', function () {
     expect($playlist->dailyMessage)->toBe('Welcome to IT');
 });
 
-
 it('resolves the exact stored IP in production (no widening)', function () {
     config(['signage.expand_loopback_variants' => false]);
 
     $m = makeMonitor(['ip_address' => '127.0.0.1']);
     $c = makeContent(['content_name' => 'prod.jpg']);
     DB::table('monitor_contents')->insert([
-        'monitor_id'    => $m->id,
-        'content_id'    => $c->id,
-        'active'        => true,
+        'monitor_id' => $m->id,
+        'content_id' => $c->id,
+        'active' => true,
         'content_order' => 0,
-        'display_time'  => 10,
-        'created_at'    => now(),
-        'updated_at'    => now(),
+        'display_time' => 10,
+        'created_at' => now(),
+        'updated_at' => now(),
     ]);
 
     $playlist = $this->resolver->forMonitor('127.0.0.1', null);
@@ -428,13 +427,13 @@ it('treats staging like production (no loopback variants)', function () {
     $m = makeMonitor(['ip_address' => '::1']);
     $c = makeContent(['content_name' => 'staging.jpg']);
     DB::table('monitor_contents')->insert([
-        'monitor_id'    => $m->id,
-        'content_id'    => $c->id,
-        'active'        => true,
+        'monitor_id' => $m->id,
+        'content_id' => $c->id,
+        'active' => true,
         'content_order' => 0,
-        'display_time'  => 10,
-        'created_at'    => now(),
-        'updated_at'    => now(),
+        'display_time' => 10,
+        'created_at' => now(),
+        'updated_at' => now(),
     ]);
 
     $playlist = $this->resolver->forMonitor('127.0.0.1', null);
@@ -442,20 +441,19 @@ it('treats staging like production (no loopback variants)', function () {
     expect($playlist->isEmpty())->toBeTrue();
 });
 
-
 it('matches a non-loopback IP in production', function () {
     config(['signage.expand_loopback_variants' => false]);
 
     $m = makeMonitor(['ip_address' => '10.0.0.1']);
     $c = makeContent(['content_name' => 'prod.jpg']);
     DB::table('monitor_contents')->insert([
-        'monitor_id'    => $m->id,
-        'content_id'    => $c->id,
-        'active'        => true,
+        'monitor_id' => $m->id,
+        'content_id' => $c->id,
+        'active' => true,
         'content_order' => 0,
-        'display_time'  => 10,
-        'created_at'    => now(),
-        'updated_at'    => now(),
+        'display_time' => 10,
+        'created_at' => now(),
+        'updated_at' => now(),
     ]);
 
     $playlist = $this->resolver->forMonitor('10.0.0.1', null);

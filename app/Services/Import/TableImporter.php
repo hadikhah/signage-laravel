@@ -33,116 +33,118 @@ use RuntimeException;
  */
 final class TableImporter
 {
-	public function __construct(private readonly CsvReader $reader) {}
+    public function __construct(private readonly CsvReader $reader) {}
 
-	public function import(TableSpec $spec, string $dir, ImportContext $ctx): void
-	{
-		$path = "{$dir}/{$spec->csvFile}";
-		['header' => $header, 'rows' => $rows] = $this->reader->read($path);
+    public function import(TableSpec $spec, string $dir, ImportContext $ctx): void
+    {
+        $path = "{$dir}/{$spec->csvFile}";
+        ['header' => $header, 'rows' => $rows] = $this->reader->read($path);
 
-		$this->validateHeader($spec, $path, $header);
+        $this->validateHeader($spec, $path, $header);
 
-		if ($ctx->truncate && ! $ctx->dryRun) {
-			$this->truncate($spec);
-		}
+        if ($ctx->truncate && ! $ctx->dryRun) {
+            $this->truncate($spec);
+        }
 
-		$inserted = 0;
-		$updated  = 0;
+        $inserted = 0;
+        $updated = 0;
 
-		foreach ($rows as $row) {
-			$this->validateRow($spec, $row);
-			$payload = $this->normalize($spec, $row);
+        foreach ($rows as $row) {
+            $this->validateRow($spec, $row);
+            $payload = $this->normalize($spec, $row);
 
-			$exists = DB::table($spec->table)->where('id', $payload['id'])->exists();
+            $exists = DB::table($spec->table)->where('id', $payload['id'])->exists();
 
-			if ($ctx->dryRun) {
-				$exists ? $updated++ : $inserted++;
-				continue;
-			}
+            if ($ctx->dryRun) {
+                $exists ? $updated++ : $inserted++;
 
-			DB::table($spec->table)->upsert(
-				[$payload],
-				$spec->uniqueBy,
-				$this->updatableColumns($spec),
-			);
+                continue;
+            }
 
-			$exists ? $updated++ : $inserted++;
-		}
+            DB::table($spec->table)->upsert(
+                [$payload],
+                $spec->uniqueBy,
+                $this->updatableColumns($spec),
+            );
 
-		$ctx->record($spec->table, $inserted, $updated, 0);
-	}
+            $exists ? $updated++ : $inserted++;
+        }
 
-	/** @param string[] $header */
-	private function validateHeader(TableSpec $spec, string $path, array $header): void
-	{
-		$dbColumns = Schema::getColumnListing($spec->table);
-		$unknown = array_diff($header, $dbColumns);
-		if ($unknown !== []) {
-			throw new RuntimeException(sprintf(
-				'Unknown column(s) in %s header: %s. DB columns: %s',
-				basename($path),
-				implode(', ', $unknown),
-				implode(', ', $dbColumns),
-			));
-		}
-	}
+        $ctx->record($spec->table, $inserted, $updated, 0);
+    }
 
-	private function validateRow(TableSpec $spec, CsvRow $row): void
-	{
-		foreach ($spec->requiredCols as $col) {
-			if ($row->get($col) === null || $row->get($col) === '') {
-				throw new RuntimeException(sprintf(
-					'Row %d of %s is missing required column "%s"',
-					$row->lineNumber,
-					$spec->csvFile,
-					$col,
-				));
-			}
-		}
-	}
+    /** @param string[] $header */
+    private function validateHeader(TableSpec $spec, string $path, array $header): void
+    {
+        $dbColumns = Schema::getColumnListing($spec->table);
+        $unknown = array_diff($header, $dbColumns);
+        if ($unknown !== []) {
+            throw new RuntimeException(sprintf(
+                'Unknown column(s) in %s header: %s. DB columns: %s',
+                basename($path),
+                implode(', ', $unknown),
+                implode(', ', $dbColumns),
+            ));
+        }
+    }
 
-	/** @return array<string, mixed> */
-	private function normalize(TableSpec $spec, CsvRow $row): array
-	{
-		$payload = $row->only($spec->columns);
+    private function validateRow(TableSpec $spec, CsvRow $row): void
+    {
+        foreach ($spec->requiredCols as $col) {
+            if ($row->get($col) === null || $row->get($col) === '') {
+                throw new RuntimeException(sprintf(
+                    'Row %d of %s is missing required column "%s"',
+                    $row->lineNumber,
+                    $spec->csvFile,
+                    $col,
+                ));
+            }
+        }
+    }
 
-		if (isset($payload['id'])) {
-			$payload['id'] = (int) $payload['id'];
-		}
+    /** @return array<string, mixed> */
+    private function normalize(TableSpec $spec, CsvRow $row): array
+    {
+        $payload = $row->only($spec->columns);
 
-		$payload = array_filter($payload, fn($v) => $v !== null);
+        if (isset($payload['id'])) {
+            $payload['id'] = (int) $payload['id'];
+        }
 
-		$now = now();
-		$payload['created_at'] = $payload['created_at'] ?? $now;
-		$payload['updated_at'] = $now;
+        $payload = array_filter($payload, fn ($v) => $v !== null);
 
-		return $payload;
-	}
+        $now = now();
+        $payload['created_at'] = $payload['created_at'] ?? $now;
+        $payload['updated_at'] = $now;
 
-	/** @return string[] */
-	private function updatableColumns(TableSpec $spec): array
-	{
-		return array_values(array_diff($spec->columns, $spec->uniqueBy));
-	}
+        return $payload;
+    }
 
-	/**
-	 * DESTRUCTIVE — DEV ONLY. See class docblock.
-	 * @throws RuntimeException outside local/testing.
-	 */
-	private function truncate(TableSpec $spec): void
-	{
-		if (! app()->environment('local', 'testing')) {
-			throw new RuntimeException(sprintf(
-				'Refusing to TRUNCATE "%s": --truncate is only allowed in '
-					. 'local or testing environments (current: %s).',
-				$spec->table,
-				app()->environment(),
-			));
-		}
+    /** @return string[] */
+    private function updatableColumns(TableSpec $spec): array
+    {
+        return array_values(array_diff($spec->columns, $spec->uniqueBy));
+    }
 
-		DB::statement(sprintf(
-			'TRUNCATE TABLE "%s" RESTART IDENTITY CASCADE',
-			$spec->table,
-		));
-	}
+    /**
+     * DESTRUCTIVE — DEV ONLY. See class docblock.
+     *
+     * @throws RuntimeException outside local/testing.
+     */
+    private function truncate(TableSpec $spec): void
+    {
+        if (! app()->environment('local', 'testing')) {
+            throw new RuntimeException(sprintf(
+                'Refusing to TRUNCATE "%s": --truncate is only allowed in '
+                    .'local or testing environments (current: %s).',
+                $spec->table,
+                app()->environment(),
+            ));
+        }
+
+        DB::statement(sprintf(
+            'TRUNCATE TABLE "%s" RESTART IDENTITY CASCADE',
+            $spec->table,
+        ));
+    }
 }

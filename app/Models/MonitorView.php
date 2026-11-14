@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use Database\Factories\MonitorViewFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MonitorView extends Model
 {
-    /** @use HasFactory<\Database\Factories\MonitorViewFactory> */
+    /** @use HasFactory<MonitorViewFactory> */
     use HasFactory;
 
     protected $fillable = ['monitor_id', 'view_id'];

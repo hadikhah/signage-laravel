@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\MonitorResource;
 use App\Models\Monitor;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\Request;
 
 class MonitorController extends Controller
 {
@@ -17,6 +16,7 @@ class MonitorController extends Controller
     {
         return Monitor::query();
     }
+
     protected function resourceClass(): string
     {
         return MonitorResource::class;
@@ -30,16 +30,16 @@ class MonitorController extends Controller
     protected function sortableColumns(): array
     {
         return [
-            'Id'           => 'id',
-            'IpAddress'    => 'ip_address',
-            'HostName'     => 'host_name',
+            'Id' => 'id',
+            'IpAddress' => 'ip_address',
+            'HostName' => 'host_name',
             'DepartmentId' => 'department_id',
-            'MacAddress'   => 'mac_address',
-            'Floor'        => 'floor',
-            'Wing'         => 'wing',
-            'Status'       => 'status',
-            'Platform'     => 'platform',
-            'Owner'        => 'owner',
+            'MacAddress' => 'mac_address',
+            'Floor' => 'floor',
+            'Wing' => 'wing',
+            'Status' => 'status',
+            'Platform' => 'platform',
+            'Owner' => 'owner',
         ];
     }
 }

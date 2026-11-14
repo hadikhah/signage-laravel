@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\ContentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,8 +11,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Content extends Model
 {
-    /** @use HasFactory<\Database\Factories\ContentFactory> */
+    /** @use HasFactory<ContentFactory> */
     use HasFactory;
+
     protected $fillable = [
         'content_name',
         'client_file_name',
@@ -25,7 +27,6 @@ class Content extends Model
         'to_date',
         'content_url_user_password_id',
     ];
-
 
     protected $casts = [
         'content_type' => 'integer',
@@ -74,6 +75,4 @@ class Content extends Model
     {
         return $this->hasMany(BaseContent::class);
     }
-
-
 }

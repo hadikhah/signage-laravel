@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use Database\Factories\MonitorContentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MonitorContent extends Model
 {
-    /** @use HasFactory<\Database\Factories\MonitorContentFactory> */
+    /** @use HasFactory<MonitorContentFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -34,8 +35,4 @@ class MonitorContent extends Model
     {
         return $this->belongsTo(Content::class);
     }
-
-    
-
-
 }

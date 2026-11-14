@@ -20,29 +20,28 @@ class MonitorContentFactory extends Factory
     public function definition(): array
     {
         return [
-            "monitor_id" => Monitor::factory(),
-            'content_id'    => Content::factory(),
-            "content_order" => fake()->numberBetween(0, 20),
-            "display_time" => fake()->optional(0.8)->numberBetween(5, 300),
-            "active" => false
+            'monitor_id' => Monitor::factory(),
+            'content_id' => Content::factory(),
+            'content_order' => fake()->numberBetween(0, 20),
+            'display_time' => fake()->optional(0.8)->numberBetween(5, 300),
+            'active' => false,
         ];
     }
 
     public function active(): static
     {
-        return $this->state(fn() => ['active' => true]);
+        return $this->state(fn () => ['active' => true]);
     }
-
 
     public function forMonitorAndContent(Monitor $monitor, Content $content, int $order = 1, int $display = 30)
     {
 
-        return $this->state(fn() => [
+        return $this->state(fn () => [
             'monitor_id' => $monitor->id,
-            "content_id" => $content->id,
-            "content_order" => $order,
-            "display_time" => $display,
-            "active" => true
+            'content_id' => $content->id,
+            'content_order' => $order,
+            'display_time' => $display,
+            'active' => true,
         ]);
     }
 }

@@ -15,9 +15,9 @@ class OfficeResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            "Id" => $this->id,
-            "Name" => $this->name,
-            "CityId" => $this->city_id
+            'Id' => $this->id,
+            'Name' => $this->name,
+            'CityId' => $this->city_id,
         ];
     }
 }

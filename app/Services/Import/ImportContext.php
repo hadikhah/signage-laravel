@@ -11,8 +11,10 @@ use Illuminate\Support\Collection;
 final class ImportContext
 {
     public int $inserted = 0;
-    public int $updated  = 0;
-    public int $skipped  = 0;
+
+    public int $updated = 0;
+
+    public int $skipped = 0;
 
     /** @var Collection<int, array{table: string, rowNumber: int, message: string}> */
     public Collection $orphans;
@@ -28,15 +30,15 @@ final class ImportContext
         public readonly bool $truncate,
     ) {
         $this->orphans = collect();
-        $this->errors  = collect();
+        $this->errors = collect();
     }
 
     public function record(string $table, int $inserted, int $updated, int $skipped): void
     {
         $this->perTable[$table] = compact('inserted', 'updated', 'skipped');
         $this->inserted += $inserted;
-        $this->updated  += $updated;
-        $this->skipped  += $skipped;
+        $this->updated += $updated;
+        $this->skipped += $skipped;
     }
 
     public function hasErrors(): bool

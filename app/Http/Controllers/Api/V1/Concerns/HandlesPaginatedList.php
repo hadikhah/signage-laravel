@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Concerns;
 use App\Http\Requests\PaginatedRequest;
 use App\Legacy\Envelope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -20,88 +21,95 @@ use Illuminate\Support\Facades\DB;
  */
 trait HandlesPaginatedList
 {
-	abstract protected function baseQuery(): Builder;
+    abstract protected function baseQuery(): Builder;
 
-	/** @return class-string<\Illuminate\Http\Resources\Json\JsonResource> */
-	abstract protected function resourceClass(): string;
+    /** @return class-string<JsonResource> */
+    abstract protected function resourceClass(): string;
 
-	/** @return string[]  DB columns to search with case-insensitive LIKE */
-	abstract protected function searchableColumns(): array;
+    /** @return string[]  DB columns to search with case-insensitive LIKE */
+    abstract protected function searchableColumns(): array;
 
-	/** @return array<string, string>  PascalCase field → DB column */
-	abstract protected function sortableColumns(): array;
+    /** @return array<string, string>  PascalCase field → DB column */
+    abstract protected function sortableColumns(): array;
 
-	public function index(PaginatedRequest $request)
-	{
-		$page = $this->prepareQuery($request)
-			->paginate(
-				perPage: $request->rowNumber(),
-				page: $request->pageIndex(),
-			)
-			->through(fn($model) => (new ($this->resourceClass())($model))->resolve());
+    public function index(PaginatedRequest $request)
+    {
+        $page = $this->prepareQuery($request)
+            ->paginate(
+                perPage: $request->rowNumber(),
+                page: $request->pageIndex(),
+            )
+            ->through(fn ($model) => (new ($this->resourceClass())($model))->resolve());
 
-		return response()->json(Envelope::paginated($page));
-	}
+        return response()->json(Envelope::paginated($page));
+    }
 
-	public function list(PaginatedRequest $request)
-	{
-		$items = $this->prepareQuery($request)
-			->get()
-			->map(fn($model) => (new ($this->resourceClass())($model))->resolve())
-			->all();
+    public function list(PaginatedRequest $request)
+    {
+        $items = $this->prepareQuery($request)
+            ->get()
+            ->map(fn ($model) => (new ($this->resourceClass())($model))->resolve())
+            ->all();
 
-		return response()->json(Envelope::list($items));
-	}
+        return response()->json(Envelope::list($items));
+    }
 
-	private function prepareQuery(PaginatedRequest $request): Builder
-	{
-		$query = $this->baseQuery();
-		$this->applySearch($query, $request);
-		$this->applySort($query, $request);
-		return $query;
-	}
+    private function prepareQuery(PaginatedRequest $request): Builder
+    {
+        $query = $this->baseQuery();
+        $this->applySearch($query, $request);
+        $this->applySort($query, $request);
 
-	private function applySearch(Builder $query, PaginatedRequest $request): void
-	{
-		$term = $request->searchTerm();
-		if ($term === null) return;
+        return $query;
+    }
 
-		$columns = $this->searchableColumns();
-		if ($columns === []) return;
+    private function applySearch(Builder $query, PaginatedRequest $request): void
+    {
+        $term = $request->searchTerm();
+        if ($term === null) {
+            return;
+        }
 
-		// Postgres: ilike for case-insensitive. MySQL/SQLite: like.
-		$operator = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+        $columns = $this->searchableColumns();
+        if ($columns === []) {
+            return;
+        }
 
-		// TODO(contract): wildcard escaping — currently % and _ in the term
-		// act as wildcards. Acceptable for read-only endpoints; refine if
-		// legacy has special chars in searchable data.
-		$pattern = '%' . $term . '%';
+        // Postgres: ilike for case-insensitive. MySQL/SQLite: like.
+        $operator = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
-		$query->where(function (Builder $q) use ($columns, $operator, $pattern) {
-			foreach ($columns as $col) {
-				$q->orWhere($col, $operator, $pattern);
-			}
-		});
-	}
+        // TODO(contract): wildcard escaping — currently % and _ in the term
+        // act as wildcards. Acceptable for read-only endpoints; refine if
+        // legacy has special chars in searchable data.
+        $pattern = '%'.$term.'%';
 
-	private function applySort(Builder $query, PaginatedRequest $request): void
-	{
-		$sortBy    = $request->sortBy();
-		$direction = $request->sortDirection();
+        $query->where(function (Builder $q) use ($columns, $operator, $pattern) {
+            foreach ($columns as $col) {
+                $q->orWhere($col, $operator, $pattern);
+            }
+        });
+    }
 
-		if ($sortBy === null) {
-			$query->orderBy('id', 'asc');
-			return;
-		}
+    private function applySort(Builder $query, PaginatedRequest $request): void
+    {
+        $sortBy = $request->sortBy();
+        $direction = $request->sortDirection();
 
-		$column = $this->sortableColumns()[$sortBy] ?? null;
+        if ($sortBy === null) {
+            $query->orderBy('id', 'asc');
 
-		// Unknown sort key → fall back to default rather than 500.
-		if ($column === null) {
-			$query->orderBy('id', 'asc');
-			return;
-		}
+            return;
+        }
 
-		$query->orderBy($column, $direction->value);
-	}
+        $column = $this->sortableColumns()[$sortBy] ?? null;
+
+        // Unknown sort key → fall back to default rather than 500.
+        if ($column === null) {
+            $query->orderBy('id', 'asc');
+
+            return;
+        }
+
+        $query->orderBy($column, $direction->value);
+    }
 }

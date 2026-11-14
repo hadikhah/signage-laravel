@@ -16,6 +16,7 @@ class CityController extends Controller
     {
         return City::query();
     }
+
     protected function resourceClass(): string
     {
         return CityResource::class;
@@ -29,7 +30,7 @@ class CityController extends Controller
     protected function sortableColumns(): array
     {
         return [
-            'Id'   => 'id',
+            'Id' => 'id',
             'Name' => 'name',
         ];
     }

@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
+use Database\Factories\MonitorViewMonitorFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class MonitorViewMonitor extends Model
 {
-    /** @use HasFactory<\Database\Factories\MonitorViewMonitorFactory> */
+    /** @use HasFactory<MonitorViewMonitorFactory> */
     use HasFactory;
 }

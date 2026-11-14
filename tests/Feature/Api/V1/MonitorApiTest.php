@@ -9,20 +9,20 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $city   = City::factory()->create();
+    $city = City::factory()->create();
     $office = Office::create(['name' => 'HQ', 'city_id' => $city->id]);
-    $dept   = Department::create([
+    $dept = Department::create([
         'department_name' => 'IT',
-        'office_id'       => $office->id,
-        'is_child'        => false,
+        'office_id' => $office->id,
+        'is_child' => false,
     ]);
 
     foreach (range(1, 8) as $i) {
         Monitor::create([
-            'ip_address'    => "10.0.0.{$i}",
+            'ip_address' => "10.0.0.{$i}",
             'department_id' => $dept->id,
-            'status'        => 'online',
-            'host_name'     => "host-{$i}",
+            'status' => 'online',
+            'host_name' => "host-{$i}",
         ]);
     }
 });

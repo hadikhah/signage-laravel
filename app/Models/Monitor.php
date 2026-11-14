@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\MonitorFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Monitor extends Model
 {
-    /** @use HasFactory<\Database\Factories\MonitorFactory> */
+    /** @use HasFactory<MonitorFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -27,8 +28,7 @@ class Monitor extends Model
         'owner',
     ];
 
-    // TODO $casts for 'status'. after figuring out what content it should hold 
-
+    // TODO $casts for 'status'. after figuring out what content it should hold
 
     public function department(): BelongsTo
     {

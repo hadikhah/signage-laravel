@@ -2,11 +2,12 @@
 
 use App\Services\Playlist\IpNormalizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
-uses(Tests\TestCase::class, RefreshDatabase::class);
+uses(TestCase::class, RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->normalizer = new IpNormalizer();
+    $this->normalizer = new IpNormalizer;
 });
 
 it('normalizes plain IPv4', function () {

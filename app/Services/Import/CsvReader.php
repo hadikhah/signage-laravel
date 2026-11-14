@@ -22,6 +22,7 @@ final class CsvReader
 {
     /**
      * @return array{header: string[], rows: CsvRow[]}
+     *
      * @throws RuntimeException
      */
     public function read(string $path): array
@@ -74,7 +75,7 @@ final class CsvReader
     }
 
     /**
-     * @param resource $handle
+     * @param  resource  $handle
      * @return string[]
      */
     private function readHeader($handle, string $path): array
@@ -86,7 +87,7 @@ final class CsvReader
         }
 
         return array_map(
-            fn($h) => trim((string) $h, " \t\n\r\0\xEF\xBB\xBF"),
+            fn ($h) => trim((string) $h, " \t\n\r\0\xEF\xBB\xBF"),
             $header,
         );
     }
