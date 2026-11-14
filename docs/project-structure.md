@@ -66,10 +66,26 @@ signage-laravel/
 │   ├── Enums/
 │   │   └── ContentType.php                     ← Step 3
 │   ├── Http/
-│   │   ├── Controllers/                        ← Step 5+
+│   │   ├── Controllers/                        
+│   │   │   └── Api/
+│   │   │       └── V1/
+│   │   │           ├── CityController.php      ← Step 5
+│   │   │           ├── OfficeController.php    ← Step 5
+│   │   │           ├── DepartmentController.php← Step 5
+│   │   │           ├── MonitorController.php   ← Step 5
+│   │   │           └── Concerns/
+│   │   │               └── HandlesPaginatedList.php  ← Step 5
 │   │   ├── Middleware/
 │   │   ├── Requests/                           ← Step 5+
-│   │   └── Resources/                          ← Step 5+
+│   │   │   └── PaginatedRequest.php            ← Step 5
+│   │   └── Resources/                          ← Step 5
+│   │       ├── CityResource.php                ← Step 5
+│   │       ├── OfficeResource.php              ← Step 5
+│   │       ├── DepartmentResource.php          ← Step 5
+│   │       └── MonitorResource.php             ← Step 5
+│   ├── Legacy/                                 ← Step 5 (feature slice)
+│   │   ├── Codes.php
+│   │   └── Envelope.php
 │   ├── Models/
 │   │   ├── ApplicationSetting.php              ← Step 2
 │   │   ├── BaseContent.php                     ← Step 3 (stub)
@@ -113,16 +129,16 @@ signage-laravel/
 │   └── nginx/
 │       └── default.conf
 ├── docs/
+│   └── decisions/
+│       └── 0001-api-contract-assumptions.md    ← Step 5 ADR
 │   ├── project-structure.md                    ← this file
-│   ├── questions.md                            ← open questions for PO
-│   ├── day-1/  day-2/  day-3/  ...             ← per-day reports / notes / blog ideas
-│   └── decisions/                              ← ADRs (Step 6+)
+│   └── runbook.md                              ← ADRs (Step 6+)
 ├── public/
 ├── resources/
 │   └── views/
 │       └── player/                             ← Step 8
 ├── routes/
-│   ├── api.php                                 ← Step 5+
+│   ├── api.php                                 ← Step 5 (v1 group)
 │   ├── console.php
 │   ├── web.php
 │   └── up.php                                  ← Step 1 (health endpoint)
@@ -389,6 +405,13 @@ Generated CSVs are written to `storage/app/legacy/export/` which is gitignored.
 |---|---|---|
 | `04-API-CONTRACT.md` | Step 5 — field names, pagination shape, `ResultCode` map | PO / moderator |
 | `05-DATA-MODEL.md` | Step 3 completion + Step 6 — `share_*`, `base_*`, `views`, `monitor_views`, `monitor_view_monitors` structure | PO / moderator |
+
+### Resolved
+
+| Was blocked by | Resolved via |
+|---|---|
+| `04-API-CONTRACT.md` | ADR `0001` — inferred from Step 7 sample; every guess has `TODO(contract)` |
+
 
 ### Known TODOs in code
 

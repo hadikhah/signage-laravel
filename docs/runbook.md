@@ -251,6 +251,106 @@ Expected counts after step 13: `cities=2, offices=3, departments=5, monitors=4, 
 
 ---
 
+## Reference APIs
+
+Read-only endpoints serving reference data. All responses use the legacy
+envelope `{ ResultCode, Message, Data }`. See ADR `0001` for the field-name
+assumptions.
+
+### Endpoints
+
+| Method | Path | Paginated | Search | Sort |
+|---|---|---|---|---|
+| GET | `/api/v1/cities` | ✓ | ✓ | ✓ |
+| GET | `/api/v1/cities/list` | — | ✓ | ✓ |
+| GET | `/api/v1/offices` | ✓ | ✓ | ✓ |
+| GET | `/api/v1/offices/list` | — | ✓ | ✓ |
+| GET | `/api/v1/departments` | ✓ | ✓ | ✓ |
+| GET | `/api/v1/departments/list` | — | ✓ | ✓ |
+| GET | `/api/v1/monitors` | ✓ | ✓ | ✓ |
+| GET | `/api/v1/monitors/list` | — | ✓ | ✓ |
+
+### Query parameters
+
+| Param | Default | Bounds | Applies to |
+|---|---|---|---|
+| `pageIndex` | `1` | `>=1` | paginated endpoints |
+| `rowNumber` | `20` | `1..500` | paginated endpoints |
+| `search` | — | `<=255 chars` | all endpoints |
+| `sortBy` | `id` (fallback) | PascalCase field name | all endpoints |
+| `sortDirection` | `asc` | `asc`/`desc` | all endpoints |
+
+- **Search**: case-insensitive `LIKE` (`ILIKE` on Postgres) across each
+  resource's searchable columns.
+- **Sort**: unknown `sortBy` values silently fall back to `id asc` — no 422.
+  Rationale: never break a request over a stale sort key.
+- **Sort columns** per resource are declared in `sortableColumns()` in each
+  controller. `TODO(contract)`: confirm against Step 9 fixtures.
+
+### Response shape
+
+```json
+{
+  "ResultCode": 5000,
+  "Message": null,
+  "Data": {
+    "Items": [
+      { "Id": 1, "Name": "Tehran" }
+    ],
+    "TotalCount": 2,
+    "PageIndex": 1,
+    "RowNumber": 20
+  }
+}
+```
+
+`/list` endpoints return `Data` as a flat array (no pagination wrapper).
+
+### Example curls
+
+```bash
+# Paginated
+curl -s 'http://localhost/api/v1/cities?pageIndex=1&rowNumber=2' | jq
+
+# Flat list
+curl -s 'http://localhost/api/v1/cities/list' | jq
+
+# Search
+curl -s 'http://localhost/api/v1/monitors?search=10.0.0' | jq
+
+# Sort
+curl -s 'http://localhost/api/v1/cities?sortBy=Name&sortDirection=desc' | jq
+
+# Combined
+curl -s 'http://localhost/api/v1/departments?search=IT&sortBy=DepartmentName&pageIndex=1&rowNumber=10' | jq
+
+# Validation errors (expect 422)
+curl -s -o /dev/null -w '%{http_code}\n' 'http://localhost/api/v1/cities?pageIndex=-1'
+curl -s -o /dev/null -w '%{http_code}\n' 'http://localhost/api/v1/cities?rowNumber=9999'
+```
+
+### Contract assumptions
+
+Every field name and ResultCode is **a guess** until Step 9 fixtures arrive.
+See `docs/decisions/0001-api-contract-assumptions.md` for the evidence and
+confidence level of each guess. When fixtures land, corrections go into
+`app/Legacy/Codes.php` and the affected `*Resource` — no controller change.
+
+### Files
+
+| File | Role |
+|---|---|
+| `app/Legacy/Codes.php` | Constants — result codes, envelope keys, pagination keys |
+| `app/Legacy/Envelope.php` | Response builder — `paginated()`, `list()`, `error()` |
+| `app/Http/Requests/PaginatedRequest.php` | Shared query-param validation |
+| `app/Http/Controllers/Api/V1/Concerns/HandlesPaginatedList.php` | Trait — index + list logic |
+| `app/Http/Controllers/Api/V1/*Controller.php` | One per resource (4) |
+| `app/Http/Resources/*Resource.php` | Field mapping (4) |
+| `routes/api.php` | `/v1` route group |
+| `tests/Feature/Api/V1/*Test.php` | Envelope, pagination, search, sort (4 files) |
+
+-----
+
 ## Running tests
 
 ```bash
