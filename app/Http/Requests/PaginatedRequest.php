@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\SortDirection;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -23,9 +24,15 @@ class PaginatedRequest extends FormRequest
     public function rules(): array
     {
         return [
-            "page_index" => ["nullable", "integer", "min:1"],
+            "pageIndex" => ["nullable", "integer", "min:1"],
 
-            "row_number" => ["nullable", "integer", "min:1", "max:200"]
+            "rowNumber" => ["nullable", "integer", "min:1", "max:200"],
+
+            "search" => ["nullable", "string", "max:255"],
+
+            "sortBy" => ["nullable", "string", "max:64"],
+
+            "sortDirection" => ["nullable", "string", "in:asc,desc,ASC,DESC"],
         ];
     }
 
@@ -37,5 +44,22 @@ class PaginatedRequest extends FormRequest
     public function rowNumber(): int
     {
         return (int) ($this->validated('rowNumber') ?? 20);
+    }
+
+    public function searchTerm(): ?string
+    {
+        $v = $this->validated('search');
+        return ($v === null || $v === '') ? null : (string) $v;
+    }
+
+    public function sortBy(): ?string
+    {
+        $v = $this->validated('sortBy');
+        return ($v === null || $v === '') ? null : (string) $v;
+    }
+
+    public function sortDirection(): SortDirection
+    {
+        return SortDirection::fromInput($this->validated('sortDirection'));
     }
 }
