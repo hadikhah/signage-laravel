@@ -24,6 +24,9 @@ use Illuminate\Support\Facades\DB;
  *   6. Filter: contents.deleted = true always excluded; date window applied
  *      with CORRECT precedence — see ADR-0002.
  *
+ *  IP lookup strategy (ADR-0003): `IpNormalizer::variants()` is used only in
+ * 	local/development/testing. Production and staging use the exact normalized
+ * 	form, per spec's "in local/dev" scope for loopback compatibility.
  * ---------------------------------------------------------------------------
  * TODO(contract): assumptions that will change with 05-DATA-MODEL.md
  * ---------------------------------------------------------------------------
@@ -195,8 +198,13 @@ final class PlaylistResolver
 
 	private function findMonitor(string $ip): ?Monitor
 	{
+
+		$ips = config('signage.expand_loopback_variants')
+			? $this->ipNormalizer->variants($ip)
+			: [$this->ipNormalizer->normalize($ip)];
+
 		return Monitor::query()
-			->whereIn('ip_address', $this->ipNormalizer->variants($ip))
+			->whereIn('ip_address', $ips)
 			->first();
 	}
 

@@ -174,24 +174,24 @@ it('returns share_contents when bypass is on and monitor is in share_monitors', 
     expect($playlist->dailyMessage)->toBe('');
 });
 
-it('does not apply bypass when the monitor is not in share_monitors', function () {
-    ApplicationSetting::current()->update(['bypass_all_content' => true]);
+it('does not expand loopback variants in production (::1 monitor, 127.0.0.1 request)', function () {
+    config(['signage.expand_loopback_variants' => false]);
 
-    $m  = makeMonitor(['ip_address' => '10.0.0.1']);
-    $c1 = makeContent();
-    attachMonitorContent($m, $c1);
-
-    DB::table('share_contents')->insert([
-        'content_id' => $c1->id,
+    $m = makeMonitor(['ip_address' => '::1']);
+    $c = makeContent(['content_name' => 'prod.jpg']);
+    DB::table('monitor_contents')->insert([
+        'monitor_id' => $m->id,
+        'content_id' => $c->id,
+        'active' => true,
+        'content_order' => 0,
+        'display_time' => 10,
         'created_at' => now(),
         'updated_at' => now(),
     ]);
 
-    $playlist = $this->resolver->forMonitor('10.0.0.1', null);
-
-    expect($playlist->bypassAllContent)->toBeFalse();
-    expect($playlist->isMonitorContent)->toBeTrue();
+    expect($this->resolver->forMonitor('127.0.0.1', null)->isEmpty())->toBeTrue();
 });
+
 
 // -----------------------------------------------------------------------------
 // Rule 3 — view
@@ -370,6 +370,10 @@ it('excludes content outside the to_date window', function () {
 // -----------------------------------------------------------------------------
 
 it('resolves a monitor stored as ::1 when the request comes from 127.0.0.1', function () {
+
+    config(['signage.expand_loopback_variants' => true]);
+
+
     $m = makeMonitor(['ip_address' => '::1']);
     $c = makeContent();
     attachMonitorContent($m, $c);
@@ -393,4 +397,69 @@ it('returns an empty items list when a monitor has no contents', function () {
     expect($playlist->monitor)->not->toBeNull();
     expect($playlist->isMonitorContent)->toBeTrue();
     expect($playlist->dailyMessage)->toBe('Welcome to IT');
+});
+
+
+it('resolves the exact stored IP in production (no widening)', function () {
+    config(['signage.expand_loopback_variants' => false]);
+
+    $m = makeMonitor(['ip_address' => '127.0.0.1']);
+    $c = makeContent(['content_name' => 'prod.jpg']);
+    DB::table('monitor_contents')->insert([
+        'monitor_id'    => $m->id,
+        'content_id'    => $c->id,
+        'active'        => true,
+        'content_order' => 0,
+        'display_time'  => 10,
+        'created_at'    => now(),
+        'updated_at'    => now(),
+    ]);
+
+    $playlist = $this->resolver->forMonitor('127.0.0.1', null);
+
+    expect($playlist->isEmpty())->toBeFalse()
+        ->and($playlist->items)->toHaveCount(1)
+        ->and($playlist->items[0]->contentName)->toBe('prod.jpg');
+});
+
+it('treats staging like production (no loopback variants)', function () {
+    config(['signage.expand_loopback_variants' => false]);
+
+    $m = makeMonitor(['ip_address' => '::1']);
+    $c = makeContent(['content_name' => 'staging.jpg']);
+    DB::table('monitor_contents')->insert([
+        'monitor_id'    => $m->id,
+        'content_id'    => $c->id,
+        'active'        => true,
+        'content_order' => 0,
+        'display_time'  => 10,
+        'created_at'    => now(),
+        'updated_at'    => now(),
+    ]);
+
+    $playlist = $this->resolver->forMonitor('127.0.0.1', null);
+
+    expect($playlist->isEmpty())->toBeTrue();
+});
+
+
+it('matches a non-loopback IP in production', function () {
+    config(['signage.expand_loopback_variants' => false]);
+
+    $m = makeMonitor(['ip_address' => '10.0.0.1']);
+    $c = makeContent(['content_name' => 'prod.jpg']);
+    DB::table('monitor_contents')->insert([
+        'monitor_id'    => $m->id,
+        'content_id'    => $c->id,
+        'active'        => true,
+        'content_order' => 0,
+        'display_time'  => 10,
+        'created_at'    => now(),
+        'updated_at'    => now(),
+    ]);
+
+    $playlist = $this->resolver->forMonitor('10.0.0.1', null);
+
+    expect($playlist->isEmpty())->toBeFalse()
+        ->and($playlist->items)->toHaveCount(1);
 });

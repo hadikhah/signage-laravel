@@ -37,18 +37,31 @@ Three possible strategies:
 
 ## Decision
 
-**Option 2 — query with variants.**
+**Option 2 — query with variants, gated by environment.**
 
-Implemented in `App\Services\Playlist\IpNormalizer`:
+`App\Services\Playlist\IpNormalizer` provides:
 
-- `normalize($ip)` — returns one canonical form for the input
-  (`::ffff:127.0.0.1` → `127.0.0.1`, uppercase → lowercase)
-- `variants($ip)` — returns **every** DB-storable form the input should
-  match. Loopback returns 3 forms; everything else returns 1.
-- `isLocal($ip)` — loopback check for debug paths
+- `normalize($ip)` — canonical form for the input
+- `variants($ip)` — every DB-storable form the input should match.
+  Loopback → 3 forms (`127.0.0.1`, `::1`, `::ffff:127.0.0.1`);
+  everything else → 1 form.
+- `isLocal($ip)` — loopback check
 
-`PlaylistResolver::findMonitor()` uses `whereIn('ip_address', $variants)`,
-never `where('ip_address', ...)`.
+`PlaylistResolver::findMonitor()` uses variants **only** in
+`local`, `development`, `testing`. In all other environments
+(`staging`, `production`, anything else) it uses only the
+normalized form.
+
+```php
+$ips = app()->environment(['local', 'development', 'testing'])
+    ? $this->ipNormalizer->variants($ip)
+    : [$this->ipNormalizer->normalize($ip)];
+```
+
+Rationale: TASK-01 Step 6 says "keep the legacy `127.0.0.1` → `::1`
+compatibility **in local/dev**." Expanding in production would be
+more permissive than the spec asks; strict matching is safer and
+production-appropriate.
 
 ## Rationale
 
@@ -89,8 +102,13 @@ never `where('ip_address', ...)`.
 - `it('provides a single variant for non-loopback IPv4')` — 1-form array
 
 `tests/Unit/Services/Playlist/PlaylistResolverTest.php`:
-- `it('resolves a monitor stored as ::1 when the request comes from 127.0.0.1')` —
-  end-to-end proof that the variant strategy works.
+  - `it('resolves a monitor stored as ::1 when the request comes from 127.0.0.1')` —
+  loopback variants active in local/dev (default test env)
+- `it('does not expand loopback variants in production (::1 monitor, 127.0.0.1 request)')` —
+  production skips variants; mismatch returns empty
+- `it('resolves the exact stored IP in production (no widening)')` —
+  production still matches when the stored form equals the request form
+
 
 ## Review trigger
 
