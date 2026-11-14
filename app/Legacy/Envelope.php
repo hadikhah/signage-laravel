@@ -42,4 +42,9 @@ final class Envelope
             Codes::KEY_DATA => $data,
         ];
     }
+
+    public static function playback(mixed $data): array
+    {
+        return self::build(Codes::SUCCESS_PLAYBACK, null, $data);
+    }
 }

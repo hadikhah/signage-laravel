@@ -71,7 +71,7 @@ final class PlaylistResolver
         $ids = DB::table('share_contents')->pluck('content_id')->all();
 
         $items = $this->loadContentsByIds($ids)
-            ->map(fn (Content $c) => $this->toItem($c, displayTime: 0))
+            ->map(fn(Content $c) => $this->toItem($c, displayTime: 0))
             ->values()
             ->all();
 
@@ -93,7 +93,7 @@ final class PlaylistResolver
         // Precise lookup: view with this name must belong to this monitor.
         $viewModel = View::query()
             ->where('name', $view)
-            ->whereHas('monitors', fn ($q) => $q->where('monitors.id', $monitor->id))
+            ->whereHas('monitors', fn($q) => $q->where('monitors.id', $monitor->id))
             ->first();
 
         if ($viewModel === null) {
@@ -179,7 +179,7 @@ final class PlaylistResolver
         if ($settings->active_base_content && $this->hasBaseLink($monitor)) {
             $baseIds = DB::table('base_contents')->pluck('content_id')->all();
             $baseItems = $this->loadContentsByIds($baseIds)
-                ->map(fn (Content $c) => $this->toItem($c, displayTime: 0))
+                ->map(fn(Content $c) => $this->toItem($c, displayTime: 0))
                 ->values()
                 ->all();
             $items = array_merge($items, $baseItems);
@@ -266,6 +266,7 @@ final class PlaylistResolver
             clientFileName: $content->client_file_name,
             fromDate: $content->from_date,
             toDate: $content->to_date,
+            uploadedAt: $content->uploaded_at ?? $content->created_at,   // ← add this
             displayTime: $displayTime,
             active: true,
             url: $isUrl ? $cred?->url : null,

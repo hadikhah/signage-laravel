@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\CityController;
 use App\Http\Controllers\Api\V1\DepartmentController;
 use App\Http\Controllers\Api\V1\MonitorController;
 use App\Http\Controllers\Api\V1\OfficeController;
+use App\Http\Controllers\Api\V1\PlaybackController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -19,4 +20,8 @@ Route::prefix('v1')->group(function () {
 
     Route::get('/monitors', [MonitorController::class, 'index']);
     Route::get('/monitors/list', [MonitorController::class, 'list']);
+
+    Route::get('/playback/monitor-contents', [PlaybackController::class, 'monitorContents']);
 });
+
+Route::get('/Content/MonitorContents', [PlaybackController::class, 'monitorContents']);

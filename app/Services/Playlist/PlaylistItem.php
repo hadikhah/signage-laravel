@@ -16,6 +16,7 @@ final readonly class PlaylistItem
         public ?string $clientFileName,
         public ?CarbonInterface $fromDate,
         public ?CarbonInterface $toDate,
+        public ?CarbonInterface $uploadedAt,   // ← add this
         public int $displayTime,
         public bool $active,
         public ?string $url,

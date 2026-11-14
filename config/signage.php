@@ -12,4 +12,11 @@ return [
         'SIGNAGE_EXPAND_LOOPBACK',
         in_array(env('APP_ENV', 'production'), ['local', 'development', 'testing'], true),
     ),
+
+    'allow_ip_override' => in_array(
+        env('APP_ENV', 'production'),
+        ['local', 'development', 'testing'],
+        true,
+    ),
+
 ];
