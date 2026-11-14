@@ -30,7 +30,7 @@
 | 3 — Content schema | 3 | ⚠️ Partial | contents + monitor_contents landed; other content tables blocked on missing spec (see [Pending](#pending--blocked)) |
 | 4 — Import command | 4 | ✅ Done | `signage:import-legacy` with dry-run, truncate, only, idempotent |
 | 5 — Reference APIs | 5 | ⏸️ Blocked | waiting on `04-API-CONTRACT.md` |
-| 6 — Playlist resolver | 6–7 | ⏸️ Blocked | needs Step 3 completion + `05-DATA-MODEL.md` |
+| 6 — Playlist resolver | 6–7 | ✅ Done | Rules 1–6 per spec; date-filter precedence per ADR-0002; 25 tests |
 | 7 — Playback + media | 8 | ⏸️ Pending | depends on Step 6 |
 | 8 — Player | 9 | ⏸️ Pending | depends on Step 7 |
 | 9 — Tests + doctor | 10 | ⏸️ Pending | |
@@ -113,6 +113,11 @@ signage-laravel/
 │       │   ├── TableImporter.php
 │       │   ├── TableSpec.php
 │       │   └── TableSpecs.php
+│       ├── Playlist/                           ← Step 6
+│       │   ├── IpNormalizer.php
+│       │   ├── Playlist.php
+│       │   ├── PlaylistItem.php
+│       │   └── PlaylistResolver.php
 │       └── Support/
 │           └── PersianDate.php                 ← Step 7 (placeholder)
 ├── database/
@@ -148,9 +153,15 @@ signage-laravel/
 │           └── export/                         ← gitignored, sample CSVs
 ├── tests/
 │   ├── Feature/
+│   │   ├── Api/V1/                             ← Step 5
+│   │   └── Console/
+│   │       └── ImportLegacySignageTest.php     ← Step 4
 │   ├── Unit/
 │   │   └── Services/Import/
 │   │       └── CsvReaderTest.php               ← Step 4
+│   │   └── Services/Playlist/
+│   │       ├── IpNormalizerTest.php            ← Step 6
+│   │       └── PlaylistResolverTest.php        ← Step 6
 │   ├── Pest.php
 │   └── TestCase.php
 ├── .env.example
@@ -412,6 +423,16 @@ Generated CSVs are written to `storage/app/legacy/export/` which is gitignored.
 |---|---|
 | `04-API-CONTRACT.md` | ADR `0001` — inferred from Step 7 sample; every guess has `TODO(contract)` |
 
+### Open contract decisions (documented, not blocking)
+
+| Question | Current answer | Where |
+|---|---|---|
+| `is_monitor_content` for view path — true or false? | `false` | `PlaylistResolver::buildViewPlaylist` + `docs/questions.md` |
+| `display_time` for share/base items | `0` | `PlaylistResolver::toItem` calls |
+| Share/base pairing — independent or paired? | Independent allow-lists | `PlaylistResolver::hasShareLink` + TODO |
+| Date filter — fixed or preserved? | **Fixed** | ADR-0002 |
+| IP variant matching — how many loopback forms? | 3 (`127.0.0.1`, `::1`, `::ffff:127.0.0.1`) | `IpNormalizer::variants` |
+
 
 ### Known TODOs in code
 
@@ -440,40 +461,6 @@ Highlights:
 ---
 
 ## Where future steps add code
-
-### Step 5 — Reference APIs
-
-```
-app/Http/Controllers/Api/V1/
-    CityController.php
-    OfficeController.php
-    DepartmentController.php
-    MonitorController.php
-app/Http/Resources/
-    CityResource.php
-    OfficeResource.php
-    DepartmentResource.php
-    MonitorResource.php
-app/Http/Requests/
-    PaginatedRequest.php
-app/Services/Api/
-    LegacyEnvelope.php
-routes/api.php                              (add /v1 group)
-tests/Feature/Api/V1/
-    CityApiTest.php
-    ...
-```
-
-### Step 6 — Playlist resolver
-
-```
-app/Services/Playlist/
-    PlaylistResolver.php
-    Playlist.php                            (DTO)
-    PlaylistItem.php                        (DTO)
-tests/Unit/Services/Playlist/
-    PlaylistResolverTest.php
-```
 
 ### Step 7 — Playback endpoint + media
 
@@ -521,5 +508,6 @@ This document is intentionally **horizontal by concern** (layout, layers, conven
 | New blocker | Pending / blocked |
 | Step completes | Status · "Where future steps add code" (remove completed block, add next) |
 | Step scope changes | Status · Pending / blocked |
+| New resolver / orchestration service | Repository layout · Architectural layers (if new category) · Pending (if new TODO) |
 
 **Rule of thumb:** if a future maintainer can't tell from this doc where a new file should go, the doc is stale — update the "Repository layout" tree and the relevant step's "Where future steps add code" block.
