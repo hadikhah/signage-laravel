@@ -173,6 +173,15 @@ final class PlaylistResolver
                 ->all();
             $items = array_merge($items, $baseItems);
         }
+
+        if (empty($items) && $this->hasBaseLink($monitor)) {
+            $baseIds = BaseContent::pluck('content_id')->all();
+            $items = $this->loadContentsByIds($baseIds)
+                ->map(fn(Content $c) => $this->toItem($c, displayTime: 0))
+                ->values()
+                ->all();
+        }
+
         return new Playlist(
             items: $items,
             monitor: $monitor,
@@ -244,13 +253,20 @@ final class PlaylistResolver
         $isUrl = $content->content_type === ContentType::Url->value;
         $cred = $content->contentUrlUserPassword;
 
+        $path = null;
+        if (! $isUrl) {
+            $encodedName = rawurlencode((string) $content->content_name);
+            $path = "/media/files/{$content->id}/{$encodedName}";
+        }
+
+
         return new PlaylistItem(
             contentId: $content->id,
             contentName: (string) $content->content_name,
             userId: $content->user_id,
             userName: $content->user?->name,
             contentType: (int) $content->content_type,
-            contentPath: $isUrl ? null : "/media/files/{$content->id}/{$content->content_name}", // TODO url should be encoded (fallback content needed)
+            contentPath: $path, // TODO url should be encoded (fallback content needed)
             clientFileName: $content->client_file_name,
             fromDate: $content->from_date,
             toDate: $content->to_date,

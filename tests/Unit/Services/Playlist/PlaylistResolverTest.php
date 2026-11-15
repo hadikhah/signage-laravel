@@ -46,7 +46,7 @@ function makeMonitor(array $overrides = []): Monitor
     $dept = Department::first();
 
     return Monitor::create(array_merge([
-        'ip_address' => '10.0.0.'.random_int(1, 250),
+        'ip_address' => '10.0.0.' . random_int(1, 250),
         'department_id' => $dept->id,
         'status' => 'online',
     ], $overrides));
@@ -142,7 +142,7 @@ it('orders by content_order, then contents.order, then id', function () {
     attachMonitorContent($m, $c3, ['content_order' => 1]);
 
     $playlist = $this->resolver->forMonitor('10.0.0.1', null);
-    $ids = array_map(fn ($i) => $i->contentId, $playlist->items);
+    $ids = array_map(fn($i) => $i->contentId, $playlist->items);
 
     expect($ids)->toBe([$c2->id, $c3->id, $c1->id]);
 });
@@ -460,4 +460,27 @@ it('matches a non-loopback IP in production', function () {
 
     expect($playlist->isEmpty())->toBeFalse()
         ->and($playlist->items)->toHaveCount(1);
+});
+
+it('falls back to base content when the monitor has no own content', function () {
+    ApplicationSetting::current()->update(['active_base_content' => false]);
+
+    $m = makeMonitor(['ip_address' => '10.0.0.1']);
+    $base = makeContent(['content_name' => 'fallback.jpg']);
+
+    DB::table('base_monitors')->insert([
+        'monitor_id' => $m->id,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+    DB::table('base_contents')->insert([
+        'content_id' => $base->id,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $playlist = $this->resolver->forMonitor('10.0.0.1', null);
+
+    expect($playlist->items)->toHaveCount(1);
+    expect($playlist->items[0]->contentId)->toBe($base->id);
 });
