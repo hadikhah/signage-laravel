@@ -32,7 +32,7 @@
 | 5 — Reference APIs | 5 | ⏸️ Blocked | waiting on `04-API-CONTRACT.md` |
 | 6 — Playlist resolver | 6–7 | ✅ Done | Rules 1–6 per spec; date-filter precedence per ADR-0002; 25 tests |
 | 7 — Playback + media | 8 | ✅ Done | `/api/v1/playback/monitor-contents`, legacy alias `/api/Content/MonitorContents`, `/media/files/{id}/{name}`, Verta-based Persian dates |
-| 8 — Player | 9 | ⏸️ Pending | depends on Step 7 |
+| 8 — Player + Reverb | 9 | ✅ Done | `/monitor` full-screen loop, crossfade overlay, Reverb `playlist.refresh` channel, `POST /api/v1/playback/refresh` |
 | 9 — Tests + doctor | 10 | ⏸️ Pending | |
 | 10 — Demo + handover | 10 | ⏸️ Pending | |
 
@@ -65,6 +65,8 @@ signage-laravel/
 │   │       └── ImportLegacySignage.php         ← Step 4
 │   ├── Enums/
 │   │   └── ContentType.php                     ← Step 3
+│   ├── Events/
+│   │   └── PlaylistRefresh.php                 ← Step 8
 │   ├── Http/
 │   │   ├── Controllers/                        
 │   │   │   └── Api/
@@ -81,6 +83,7 @@ signage-laravel/
 │   │   ├── Requests/                           ← Step 5+
 │   │   │   └── PaginatedRequest.php            ← Step 5
 │   │   │   └── PlaybackRequest.php             ← Step 7
+│   │   │   └── RefreshRequest.php              ← Step 8
 │   │   └── Resources/                          ← Step 5
 │   │       ├── CityResource.php                ← Step 5
 │   │       ├── OfficeResource.php              ← Step 5
@@ -140,7 +143,7 @@ signage-laravel/
 ├── docker/
 │   ├── 8.4/
 │   │   ├── Dockerfile
-│   │   ├── supervisord.conf
+│   │   ├── supervisord.conf                    ([program:php], [program:reverb])
 │   │   ├── start-container
 │   │   ├── php.ini
 │   │   └── www.conf
@@ -149,17 +152,26 @@ signage-laravel/
 ├── docs/
 │   └── decisions/
 │       └── 0001-api-contract-assumptions.md    ← Step 5 ADR
+│       ├── 0002-date-filter-behavior.md        ← Step 6
+│       ├── 0003-ip-variant-matching.md         ← Step 6
+│       ├── 0004-media-route-loading.md         ← Step 7
+│       ├── 0005-ip-override-scoping.md         ← Step 7
+│       ├── 0006-reverb-embedded-in-app.md      ← Step 8
+│       └── 0007-public-broadcast-channel.md    ← Step 8
 │   ├── project-structure.md                    ← this file
 │   └── runbook.md                              ← ADRs (Step 6+)
 ├── public/
+│   └── player/
+│       ├── player.css                          ← Step 8
+│       └── player.js                           ← Step 8
 ├── resources/
 │   └── views/
 │       └── player/                             ← Step 8
 ├── routes/
-│   ├── api.php                                 ← Step 5 (v1 group),Step 7 (playback + legacy alias)
+│   ├── api.php                                 ← Step 5 (v1 group),Step 7 (playback + legacy alias) ,Step 8 (refresh)
 │   ├── console.php
 │   ├── media.php                               ← Step 7 (loaded via MediaRouteServiceProvider)
-│   ├── web.php
+│   ├── web.php                                 ← Step 8 (/monitor)
 │   └── up.php                                  ← Step 1 (health endpoint)
 ├── storage/
 │   └── app/
@@ -170,10 +182,13 @@ signage-laravel/
 │   │   ├── Api/V1/                             ← Step 5
 │   │   │   ├── MonitorApiTest.php              ← Step 5
 │   │   │   └── PlaybackApiTest.php             ← Step 7
+│   │   │   └── PlaybackRefreshApiTest.php      ← Step 8
 │   │   └── Console/
 │   │       └── ImportLegacySignageTest.php     ← Step 4
 │   │   └── Media/
 │   │       └── MediaRouteTest.php              ← Step 7
+│   │   └── Player/
+│   │       └── PlayerRouteTest.php             ← Step 8
 │   ├── Unit/
 │   │   └── Services/
 │   │       ├── Import/                         ← Step 6
@@ -183,7 +198,6 @@ signage-laravel/
 │   │       │   └── PlaylistResolverTest.php
 │   │       └── Support/
 │   │           └── PersianDateTest.php         ← Step 7
-
 │   ├── Pest.php
 │   └── TestCase.php
 ├── .env.example
@@ -438,6 +452,31 @@ Use **`docker-compose`** (hyphen) — this project does not use `docker compose`
 
 Future services (Vite, Reverb, queue) are added as additional `[program:*]` blocks **when the corresponding service exists**, not before (a program that can't start crash-loops).
 
+### Broadcasting (Reverb)
+
+Reverb runs as a `[program:reverb]` inside the `laravel.test` container,
+not a separate service (ADR-0006). Port `8080` is published on `app`;
+nginx proxies `/apps?/` to `laravel.test:8080`.
+
+Key env vars:
+
+| Var | Server-side | Browser-side |
+|---|---|---|
+| `REVERB_HOST` | `localhost` (loopback inside container) | `localhost` (via port mapping) |
+| `REVERB_PORT` | `8080` | `8080` |
+| `REVERB_SCHEME` | `http` (dev) / `https` (prod) | `ws` (dev) / `wss` (prod) |
+| `BROADCAST_CONNECTION` | `reverb` | — |
+
+`REVERB_HOST` must resolve from both the container network **and** the
+browser. `localhost` works for both — never `reverb` (no such service),
+never `laravel.test` (not resolvable from browser).
+
+If you edit `.env` (`REVERB_*` or `BROADCAST_CONNECTION`), run:
+```bash
+docker-compose exec app php artisan config:clear
+docker-compose exec app php artisan config:cache
+docker-compose restart app
+
 ### Sample CSVs for manual testing
 
 Location: `scripts/` (outside this repo, at `../MTN/` relative to project root — not tracked here).
@@ -474,6 +513,11 @@ Generated CSVs are written to `storage/app/legacy/export/` which is gitignored.
 | Empty playlist `ResultCode` | `4000` (same as success) | PlaybackController — one line to change if distinct code required |
 | `ContentTypeText` for URL type (5) | `آدرس` | ContentType::labelFa() |
 | `?ip=` override path | `local`/`development`/`testing` only | ADR-0005 |
+| Refresh endpoint auth | Public + `throttle:10,1` | ADR-0007 |
+| Broadcast channel shape | Public `playlist.refresh` | ADR-0007 |
+| Reverb deployment | Embedded in `laravel.test` | ADR-0006 |
+| Flash support | Fallback only (Ruffle deferred) | `playFlash()` TODO |
+| URL auto-login | Not implemented (browser blocks) | `playUrl()` TODO |
 
 
 ### Known TODOs in code
@@ -551,5 +595,7 @@ This document is intentionally **horizontal by concern** (layout, layers, conven
 | Step completes | Status · "Where future steps add code" (remove completed block, add next) |
 | Step scope changes | Status · Pending / blocked |
 | New resolver / orchestration service | Repository layout · Architectural layers (if new category) · Pending (if new TODO) |
+| New broadcast event / channel | Repository layout (Events) · Broadcasting section · ADRs |
+
 
 **Rule of thumb:** if a future maintainer can't tell from this doc where a new file should go, the doc is stale — update the "Repository layout" tree and the relevant step's "Where future steps add code" block.

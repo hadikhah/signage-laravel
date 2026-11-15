@@ -608,3 +608,139 @@ no consumer changes.
 | `app/Providers/MediaRouteServiceProvider.php` | Loads `routes/media.php` |
 | `routes/media.php` | Media route registration |
 | `config/filesystems.php` | `media` disk definition |
+## Player & Reverb
+
+The player serves a full-screen browser loop. Reverb provides live refresh
+so admins can push updated playlists without a page reload.
+
+### `/monitor` route
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/monitor` | Full-screen player |
+
+Query params:
+
+| Param | Notes |
+|---|---|
+| `ip` | Dev-only override — only honored in `local`/`development`/`testing`. Same rule as playback endpoint. |
+
+Production resolves the monitor from the client IP forwarded by nginx
+(`X-Real-IP` set from `$remote_addr` — spoof-safe; see ADR-0005).
+
+### Refresh endpoint
+
+| Method | Path | Rate limit |
+|---|---|---|
+| POST | `/api/v1/playback/refresh` | `throttle:10,1` |
+
+Request body:
+
+```json
+{ "ip": "10.0.0.1" }   // refresh one monitor
+{ "ip": null }          // refresh all monitors
+{ }                     // same as null
+```
+
+Response:
+
+```json
+{
+  "ResultCode": 5000,
+  "Message": null,
+  "Data": { "dispatched": true, "ip": "10.0.0.1" }
+}
+```
+
+Fires `PlaylistRefresh` on the public `playlist.refresh` channel. Every
+player currently subscribed that matches the `ip` filter reloads its
+playlist.
+
+### Example curls
+
+```bash
+# Refresh one monitor
+curl -s -X POST 'http://localhost/api/v1/playback/refresh' \
+  -H 'Content-Type: application/json' \
+  -d '{"ip":"10.0.0.1"}' | jq
+
+# Refresh all
+curl -s -X POST 'http://localhost/api/v1/playback/refresh' \
+  -H 'Content-Type: application/json' -d '{}' | jq
+```
+
+Browser console on a subscribed player shows:
+
+```
+[player] reverb connecting ws://localhost:8080/app/...
+[player] reverb socket open
+[player] reverb subscribed to playlist.refresh
+[player] reverb refresh received 10.0.0.1
+[player] playlist loaded 4 items
+```
+
+### Player behavior
+
+| Content type | Behavior |
+|---|---|
+| Image (1) | Display for `DisplayTime` seconds (min 3s) |
+| Video (2) | Play to end; advance on `ended` (or 15s timeout if it never starts) |
+| Text (3) | Display text for `DisplayTime` seconds (min 5s) |
+| Flash (4) | Fallback card — "no longer supported" (Ruffle deferred) |
+| URL (5) | Iframe + clickable fallback link; advances after `DisplayTime` (min 10s) |
+| Missing image/video | "⚠ Content unavailable" overlay; skips after 2s |
+| Empty playlist | "No content" screen; retries after 60s |
+
+Every transition uses a 200ms crossfade. No black frame between items.
+
+### Reverb infra
+
+Reverb runs as a `[program:reverb]` inside the `laravel.test` container
+(ADR-0006). Port `8080` published on `app`; nginx proxies `/apps?/` to
+`laravel.test:8080`.
+
+Check status:
+
+```bash
+docker-compose exec app supervisorctl status
+# → php     RUNNING
+#   reverb  RUNNING
+```
+
+Or check the process directly:
+
+```bash
+docker-compose exec app ps -ef | grep "artisan reverb"
+```
+
+Or check the port via `/proc` (if `ss` is not installed):
+
+```bash
+# 1F90 == 8080. Leading 00000000 = 0.0.0.0 (good);
+# 0100007F = 127.0.0.1 (only loopback — problem)
+docker-compose exec app grep -i "1F90" /proc/net/tcp
+```
+
+### Reverb troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Browser: `ws://reverb:8080` connection failed | `REVERB_HOST=reverb` — no such service from browser | Set `REVERB_HOST=localhost` + `config:clear && config:cache && restart app` |
+| `supervisorctl status` → `no such file` | Missing `[unix_http_server]` section | Add `[unix_http_server]`, `[rpcinterface:supervisor]`, `[supervisorctl]` to `supervisord.conf` |
+| Reverb process runs, but port 8080 dead | `--host=127.0.0.1` (default) | Ensure `--host=0.0.0.0` in `[program:reverb] command=` |
+| Endpoint returns 200, browser gets nothing | `ShouldBroadcast` (not `Now`), no queue worker | Change event to `implements ShouldBroadcastNow` |
+| Browser receives handshake, no events | `BROADCAST_CONNECTION=log` | Set to `reverb` + `config:clear && config:cache && restart app` |
+| WebSocket connects, then 4001 "Application does not exist" | `REVERB_APP_KEY` mismatch (or config cache stale) | Verify `config('reverb.apps.apps.0.key')` matches `.env` |
+
+### Files
+
+| File | Role |
+|---|---|
+| `resources/views/player/index.blade.php` | Player page + `window.PLAYER_ENDPOINTS` / `window.REVERB` |
+| `public/player/player.js` | Loop, crossfade, Reverb client |
+| `public/player/player.css` | Full-screen styling |
+| `app/Events/PlaylistRefreshEvent.php` | `ShouldBroadcastNow` event |
+| `app/Http/Controllers/Api/V1/PlaybackRefreshController.php` | Fires the event |
+| `routes/api.php` | `POST /api/v1/playback/refresh` |
+| `routes/web.php` | `GET /monitor` |
+| `docker/8.4/supervisord.conf` | `[program:php]` + `[program:reverb]` |
