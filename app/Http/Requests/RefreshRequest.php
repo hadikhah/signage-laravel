@@ -12,7 +12,19 @@ class RefreshRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        if (app()->environment(['local', 'development', 'testing'])) {
+            return true;
+        }
+
+        $requestedIp = $this->input('ip');
+
+        // Empty body → refresh self (allowed)
+        if ($requestedIp === null || $requestedIp === '') {
+            return true;
+        }
+
+        // Production: body ip must match caller's real IP (from nginx X-Real-IP)
+        return (string) $requestedIp === $this->callerIp();
     }
 
     /**
@@ -25,5 +37,17 @@ class RefreshRequest extends FormRequest
         return [
             'ip' => ['nullable', 'string', 'max:64'],
         ];
+    }
+
+    private function callerIp(): string
+    {
+        if (app()->environment(['local', 'development', 'testing'])) {
+            $override = $this->query('ip');
+            if (is_string($override) && $override !== '') {
+                return $override;
+            }
+        }
+
+        return (string) $this->ip();
     }
 }
