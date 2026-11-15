@@ -24,7 +24,7 @@ class DepartmentResource extends JsonResource
 
             'IsChild' => (bool) $this->is_child,
 
-            'lock' => $this->lock,
+            'Lock' => $this->lock,
 
             'PartentId' => $this->partent_id,
 
