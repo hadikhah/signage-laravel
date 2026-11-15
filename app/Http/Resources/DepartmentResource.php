@@ -26,7 +26,7 @@ class DepartmentResource extends JsonResource
 
             'Lock' => $this->lock,
 
-            'PartentId' => $this->partent_id,
+            'ParentId' => $this->parent_id,
 
             'OfficeId' => $this->office_id,
 
