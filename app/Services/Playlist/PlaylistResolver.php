@@ -4,10 +4,14 @@ namespace App\Services\Playlist;
 
 use App\Enums\ContentType;
 use App\Models\ApplicationSetting;
+use App\Models\BaseContent;
+use App\Models\BaseMonitor;
 use App\Models\Content;
 use App\Models\Monitor;
+use App\Models\MonitorContent;
+use App\Models\ShareContent;
+use App\Models\ShareMonitor;
 use App\Models\View;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Resolves the playlist for a monitor by IP and optional view.
@@ -68,10 +72,10 @@ final class PlaylistResolver
 
     private function buildBypassPlaylist(Monitor $monitor): Playlist
     {
-        $ids = DB::table('share_contents')->pluck('content_id')->all();
+        $ids = ShareContent::pluck('content_id')->all();
 
         $items = $this->loadContentsByIds($ids)
-            ->map(fn (Content $c) => $this->toItem($c, displayTime: 0))
+            ->map(fn(Content $c) => $this->toItem($c, displayTime: 0))
             ->values()
             ->all();
 
@@ -90,53 +94,44 @@ final class PlaylistResolver
 
     private function buildViewPlaylist(Monitor $monitor, string $view): Playlist
     {
-        // Precise lookup: view with this name must belong to this monitor.
         $viewModel = View::query()
             ->where('name', $view)
-            ->whereHas('monitors', fn ($q) => $q->where('monitors.id', $monitor->id))
+            ->whereHas('monitors', fn($q) => $q->where('monitors.id', $monitor->id))
             ->first();
 
         if ($viewModel === null) {
             return Playlist::empty();
         }
 
-        $rows = DB::table('contents')
-            ->join('view_contents', 'view_contents.content_id', '=', 'contents.id')
-            ->join('monitor_contents', function ($j) use ($monitor) {
-                $j->on('monitor_contents.content_id', '=', 'contents.id')
-                    ->where('monitor_contents.monitor_id', '=', $monitor->id)
-                    ->where('monitor_contents.active', '=', true);
+        $today = now()->toDateString();
+
+        $monitorContents = MonitorContent::query()
+            ->where('monitor_id', $monitor->id)
+            ->where('active', true)
+            ->whereHas('content', function ($q) use ($viewModel, $today) {
+                $q->where('deleted', false)
+                    ->where(fn($q) => $q->whereNull('from_date')->orWhere('from_date', '<=', $today))
+                    ->where(fn($q) => $q->whereNull('to_date')->orWhere('to_date', '>=', $today))
+                    ->whereHas('viewContents', fn($q) => $q->where('view_id', $viewModel->id));
             })
-            ->where('view_contents.view_id', '=', $viewModel->id)
-            ->where('contents.deleted', '=', false)
-            ->where(function ($q) {
-                $today = now()->toDateString();
-                $q->whereNull('contents.from_date')->orWhere('contents.from_date', '<=', $today);
-            })
-            ->where(function ($q) {
-                $today = now()->toDateString();
-                $q->whereNull('contents.to_date')->orWhere('contents.to_date', '>=', $today);
-            })
-            ->select([
-                'contents.*',
-                'monitor_contents.display_time as mc_display_time',
-            ])
-            ->orderBy('monitor_contents.content_order')
-            ->orderBy('contents.order')
-            ->orderBy('contents.id')
+            ->with(['content.user', 'content.contentUrlUserPassword'])
             ->get();
 
-        $items = $rows->map(function ($row) {
-            $content = Content::with(['contentUrlUserPassword', 'user'])->find($row->id);
-
-            return $this->toItem($content, displayTime: (int) $row->mc_display_time);
-        })->values()->all();
+        $items = $monitorContents
+            ->sortBy([
+                ['content_order', 'asc'],   // parent column
+                ['content.order', 'asc'],   // related column
+                ['content.id', 'asc'],      // related column
+            ])
+            ->map(fn(MonitorContent $mc) => $this->toItem($mc->content, displayTime: (int) $mc->display_time))
+            ->values()
+            ->all();
 
         return new Playlist(
             items: $items,
             monitor: $monitor,
             bypassAllContent: false,
-            isMonitorContent: false, // source is view, not monitor's own playlist (TODO)
+            isMonitorContent: false,
             dailyMessage: $this->dailyMessageFor($monitor),
         );
     }
@@ -147,44 +142,37 @@ final class PlaylistResolver
 
     private function buildDefaultPlaylist(Monitor $monitor, ApplicationSetting $settings): Playlist
     {
-        $rows = DB::table('contents')
-            ->join('monitor_contents', 'monitor_contents.content_id', '=', 'contents.id')
-            ->where('monitor_contents.monitor_id', '=', $monitor->id)
-            ->where('monitor_contents.active', '=', true)
-            ->where('contents.deleted', '=', false)
-            ->where(function ($q) {
-                $today = now()->toDateString();
-                $q->whereNull('contents.from_date')->orWhere('contents.from_date', '<=', $today);
+        $today = now()->toDateString();
+
+        $monitorContents = MonitorContent::query()
+            ->where('monitor_id', $monitor->id)
+            ->where('active', true)
+            ->whereHas('content', function ($q) use ($today) {
+                $q->where('deleted', false)
+                    ->where(fn($q) => $q->whereNull('from_date')->orWhere('from_date', '<=', $today))
+                    ->where(fn($q) => $q->whereNull('to_date')->orWhere('to_date', '>=', $today));
             })
-            ->where(function ($q) {
-                $today = now()->toDateString();
-                $q->whereNull('contents.to_date')->orWhere('contents.to_date', '>=', $today);
-            })
-            ->select([
-                'contents.*',
-                'monitor_contents.display_time as mc_display_time',
-            ])
-            ->orderBy('monitor_contents.content_order')
-            ->orderBy('contents.order')
-            ->orderBy('contents.id')
+            ->with(['content.user', 'content.contentUrlUserPassword'])
             ->get();
 
-        $items = $rows->map(function ($row) {
-            $content = Content::with(['contentUrlUserPassword', 'user'])->find($row->id);
+        $items = $monitorContents
+            ->sortBy([
+                ['content_order', 'asc'],
+                ['content.order', 'asc'],
+                ['content.id', 'asc'],
+            ])
+            ->map(fn(MonitorContent $mc) => $this->toItem($mc->content, displayTime: (int) $mc->display_time))
+            ->values()
+            ->all();
 
-            return $this->toItem($content, displayTime: (int) $row->mc_display_time);
-        })->values()->all();
-
-        // Rule 5: append base when active_base_content is on and monitor is in base_monitors
         if ($settings->active_base_content && $this->hasBaseLink($monitor)) {
-            $baseIds = DB::table('base_contents')->pluck('content_id')->all();
+            $baseIds = BaseContent::pluck('content_id')->all();
             $baseItems = $this->loadContentsByIds($baseIds)
-                ->map(fn (Content $c) => $this->toItem($c, displayTime: 0))
+                ->map(fn(Content $c) => $this->toItem($c, displayTime: 0))
                 ->values()
                 ->all();
             $items = array_merge($items, $baseItems);
         }
-
         return new Playlist(
             items: $items,
             monitor: $monitor,
@@ -217,12 +205,12 @@ final class PlaylistResolver
 
     private function hasShareLink(Monitor $monitor): bool
     {
-        return DB::table('share_monitors')->where('monitor_id', $monitor->id)->exists();
+        return ShareMonitor::query()->where('monitor_id', $monitor->id)->exists();
     }
 
     private function hasBaseLink(Monitor $monitor): bool
     {
-        return DB::table('base_monitors')->where('monitor_id', $monitor->id)->exists();
+        return BaseMonitor::query()->where('monitor_id', $monitor->id)->exists();
     }
 
     private function dailyMessageFor(Monitor $monitor): string
@@ -262,7 +250,7 @@ final class PlaylistResolver
             userId: $content->user_id,
             userName: $content->user?->name,
             contentType: (int) $content->content_type,
-            contentPath: $isUrl ? null : "/media/files/{$content->id}/{$content->content_name}",
+            contentPath: $isUrl ? null : "/media/files/{$content->id}/{$content->content_name}", // TODO url should be encoded (fallback content needed)
             clientFileName: $content->client_file_name,
             fromDate: $content->from_date,
             toDate: $content->to_date,
