@@ -1,0 +1,23 @@
+{
+    "ResultCode": 4000,
+    "Message": null,
+    "Data": {
+        "ShareContents": null,
+        "MonitorContents": [],
+        "DailyMessage": "",
+        "IsMonitorContent": false,
+        "ByPassAllContent": false,
+        "MonitorDateTime": {
+            "TodayDate": "1404/08/16",
+            "PersianWeekDayText": "شنبه",
+            "WeekDayText": "Saturday",
+            "Full": "1404/08/16-شنبه",
+            "PersianMonth": 8,
+            "PersianYear": 1404,
+            "PersianDay": 16,
+            "Month": 11,
+            "Year": 2025,
+            "Day": 7
+        }
+    }
+}

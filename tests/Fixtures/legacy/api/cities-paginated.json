@@ -1,0 +1,15 @@
+{
+    "ResultCode": 5000,
+    "Message": null,
+    "Data": {
+        "Items": [
+            {
+                "Id": 1,
+                "Name": "Tehran"
+            }
+        ],
+        "TotalCount": 1,
+        "PageIndex": 1,
+        "RowNumber": 20
+    }
+}

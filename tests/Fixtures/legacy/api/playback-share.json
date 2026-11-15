@@ -1,0 +1,45 @@
+{
+    "ResultCode": 4000,
+    "Message": null,
+    "Data": {
+        "ShareContents": [
+            {
+                "ContentId": 2,
+                "ContentName": "shared.jpg",
+                "UserId": null,
+                "UserName": null,
+                "ContentType": 1,
+                "Contentpath": "/media/files/2/shared.jpg",
+                "ClientFileName": null,
+                "FromDate": null,
+                "ToDate": null,
+                "ContentTypeText": "عکس",
+                "UploadeDateTime": "2026-01-02T00:00:00",
+                "UploadDate": "1404/10/12",
+                "UploadTime": "00:00",
+                "DisplayTime": 0,
+                "Active": true,
+                "UrlUserName": null,
+                "UrlPassword": null,
+                "IsAutoLogin": null,
+                "Url": null
+            }
+        ],
+        "MonitorContents": null,
+        "DailyMessage": "",
+        "IsMonitorContent": false,
+        "ByPassAllContent": true,
+        "MonitorDateTime": {
+            "TodayDate": "1404/08/16",
+            "PersianWeekDayText": "شنبه",
+            "WeekDayText": "Saturday",
+            "Full": "1404/08/16-شنبه",
+            "PersianMonth": 8,
+            "PersianYear": 1404,
+            "PersianDay": 16,
+            "Month": 11,
+            "Year": 2025,
+            "Day": 7
+        }
+    }
+}

@@ -1,0 +1,45 @@
+{
+	"ResultCode": 4000,
+	"Message": null,
+	"Data": {
+		"ShareContents": null,
+		"MonitorContents": [
+			{
+				"ContentId": 1,
+				"ContentName": "welcome.jpg",
+				"UserId": null,
+				"UserName": null,
+				"ContentType": 1,
+				"Contentpath": "/media/files/1/welcome.jpg",
+				"ClientFileName": "original.jpg",
+				"FromDate": null,
+				"ToDate": null,
+				"ContentTypeText": "عکس",
+				"UploadeDateTime": "2026-01-01T00:00:00",
+				"UploadDate": "1404/10/11",
+				"UploadTime": "00:00",
+				"DisplayTime": 10,
+				"Active": true,
+				"UrlUserName": null,
+				"UrlPassword": null,
+				"IsAutoLogin": null,
+				"Url": null
+			}
+		],
+		"DailyMessage": "Welcome to IT",
+		"IsMonitorContent": true,
+		"ByPassAllContent": false,
+		"MonitorDateTime": {
+			"TodayDate": "1404/08/16",
+			"PersianWeekDayText": "شنبه",
+			"WeekDayText": "Saturday",
+			"Full": "1404/08/16-شنبه",
+			"PersianMonth": 8,
+			"PersianYear": 1404,
+			"PersianDay": 16,
+			"Month": 11,
+			"Year": 2025,
+			"Day": 7
+		}
+	}
+}
