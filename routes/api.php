@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\DepartmentController;
 use App\Http\Controllers\Api\V1\MonitorController;
 use App\Http\Controllers\Api\V1\OfficeController;
 use App\Http\Controllers\Api\V1\PlaybackController;
+use App\Http\Controllers\PlaybackRefreshController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -22,7 +23,11 @@ Route::prefix('v1')->group(function () {
     Route::get('/monitors/list', [MonitorController::class, 'list']);
 
     Route::get('/playback/monitor-contents', [PlaybackController::class, 'monitorContents'])
-        ->name('playback.monitor-contents');;
+        ->name('playback.monitor-contents');
+
+    Route::post('/playback/refresh', PlaybackRefreshController::class)
+        ->middleware('throttle:10,1')
+        ->name('playback.refresh');
 });
 
 Route::get('/Content/MonitorContents', [PlaybackController::class, 'monitorContents']);

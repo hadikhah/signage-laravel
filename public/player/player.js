@@ -439,7 +439,78 @@
 		preloadNext();
 	}
 
+	// reverb
+
+	// ------------------------------------------------------------------ reverb
+
+	function connectReverb() {
+		if (!window.REVERB || !window.REVERB.wsUrl) {
+			log('reverb disabled — no wsUrl');
+			return;
+		}
+
+		const url = window.REVERB.wsUrl +
+			'?protocol=7&client=js&version=8.4.0&flash=false';
+
+		log('reverb connecting', url);
+		let ws;
+		try {
+			ws = new WebSocket(url);
+		} catch (e) {
+			err('reverb WebSocket ctor failed', e);
+			setTimeout(connectReverb, 5000);
+			return;
+		}
+
+		let pingTimer = null;
+
+		ws.onopen = () => log('reverb socket open');
+
+		ws.onmessage = (msg) => {
+			let data;
+			try { data = JSON.parse(msg.data); } catch (_) { return; }
+
+			switch (data.event) {
+				case 'pusher:connection_established': {
+					ws.send(JSON.stringify({
+						event: 'pusher:subscribe',
+						data: { channel: window.REVERB.channel },
+					}));
+					pingTimer = setInterval(() => {
+						try {
+							ws.send(JSON.stringify({ event: 'pusher:ping', data: {} }));
+						} catch (_) { }
+					}, 30000);
+					break;
+				}
+				case 'pusher_internal:subscription_succeeded':
+					log('reverb subscribed to', window.REVERB.channel);
+					break;
+				case 'PlaylistRefresh': {
+					let payload = {};
+					try { payload = JSON.parse(data.data || '{}'); } catch (_) { }
+					const target = payload.ip;
+					if (target === null || target === undefined || target === MONITOR_IP) {
+						log('reverb refresh received', target);
+						boot();
+					}
+					break;
+				}
+			}
+		};
+
+		ws.onclose = () => {
+			log('reverb closed — reconnecting in 5s');
+			if (pingTimer) { clearInterval(pingTimer); pingTimer = null; }
+			setTimeout(connectReverb, 5000);
+		};
+
+		ws.onerror = (e) => err('reverb error', e);
+	}
+
 	// -------------------------------------------------------------------- boot
+
+	let reverbStarted = false;
 
 	function boot() {
 		log('boot');
@@ -456,6 +527,12 @@
 			log('playlist loaded', items.length, 'items');
 			playPlaylist();
 		});
+
+		if (!reverbStarted) {
+			reverbStarted = true;
+			connectReverb();
+		}
+
 	}
 
 	document.addEventListener('DOMContentLoaded', boot);

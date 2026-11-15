@@ -11,10 +11,6 @@ class MonitorController extends Controller
 
         $ip = (string) $request->ip();
 
-        // Dev/test convenience — same rule as PlaybackController (ADR-0005).
-        // If your production deployment doesn't propagate client IP via nginx
-        // (TrustProxies), the ?ip= override will be the only way to test the
-        // player against a specific monitor. See "Production note" below.
         if (app()->environment(['local', 'development', 'testing'])) {
             $override = $request->query('ip');
             if (is_string($override) && $override !== '') {
@@ -22,9 +18,15 @@ class MonitorController extends Controller
             }
         }
 
+        $scheme = config('reverb.apps.apps.0.options.scheme') === 'https' ? 'wss' : 'ws';
+        $host   = config('reverb.apps.apps.0.options.host');
+        $port   = config('reverb.apps.apps.0.options.port');
+        $key    = config('reverb.apps.apps.0.key');
+
         return view('player.index', [
-            'monitorIp' => $ip,
+            'monitorIp'       => $ip,
             'initialDateTime' => \App\Services\Support\PersianDate::dateTimeObject(now()),
+            'reverbWsUrl'     => "{$scheme}://{$host}:{$port}/app/{$key}",
         ]);
     }
 }

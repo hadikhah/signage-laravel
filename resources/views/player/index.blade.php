@@ -32,6 +32,12 @@
             playback: @json(route('playback.monitor-contents')),
         };
         window.MONITOR_IP = @json($monitorIp);
+
+        window.REVERB = {
+            wsUrl: @json($reverbWsUrl),
+            channel: 'playlist.refresh',
+        };
+        
     </script>
     <script defer src="{{ asset('player/player.js') }}?v={{ filemtime(public_path('player/player.js')) }}"></script>
 
