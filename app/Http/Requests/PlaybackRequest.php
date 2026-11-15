@@ -25,7 +25,7 @@ class PlaybackRequest extends FormRequest
         return [
             'view' => ['nullable', 'string', 'max:64'],
             // Testing convenience — env-gated read in the controller.
-            'ip'   => ['nullable', 'string', 'max:64'],
+            'ip' => ['nullable', 'string', 'max:64'],
         ];
     }
 }

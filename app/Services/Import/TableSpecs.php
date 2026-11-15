@@ -49,7 +49,7 @@ final class TableSpecs
                 columns: ['id', 'url', 'user_name', 'password'],
                 requiredCols: ['id'],
             ),
-            
+
             new TableSpec(
                 table: 'contents',
                 csvFile: 'contents.csv',
@@ -108,7 +108,6 @@ final class TableSpecs
                 columns: ['id', 'monitor_id'],
                 requiredCols: ['id', 'monitor_id'],
             ),
-
 
         ];
     }

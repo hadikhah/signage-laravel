@@ -33,8 +33,8 @@ class MediaController extends Controller
         if ($content === null || $content->deleted) {
             Log::info('Media 404: unknown or deleted content', [
                 'content_id' => $contentId,
-                'filename'   => $filename,
-                'ip'         => $request->ip(),
+                'filename' => $filename,
+                'ip' => $request->ip(),
             ]);
             abort(404);
         }
@@ -42,9 +42,9 @@ class MediaController extends Controller
         // 3. Filename must match the content's stored name (case-sensitive).
         if ($content->content_name !== $filename) {
             Log::info('Media 404: filename mismatch', [
-                'content_id'    => $contentId,
-                'requested'     => $filename,
-                'stored_name'   => $content->content_name,
+                'content_id' => $contentId,
+                'requested' => $filename,
+                'stored_name' => $content->content_name,
             ]);
             abort(404);
         }
@@ -56,8 +56,8 @@ class MediaController extends Controller
         if (! $disk->exists($path)) {
             Log::warning('Media file missing on disk', [
                 'content_id' => $contentId,
-                'filename'   => $filename,
-                'path'       => $disk->path($path),
+                'filename' => $filename,
+                'path' => $disk->path($path),
             ]);
             abort(404);
         }

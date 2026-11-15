@@ -17,7 +17,7 @@ class PlaybackController extends Controller
 
     public function monitorContents(PlaybackRequest $request)
     {
-        $ip   = $this->resolveIp($request);
+        $ip = $this->resolveIp($request);
         $view = $request->input('view');
         $view = ($view === '' || $view === 'undefined') ? null : $view;
 
@@ -39,7 +39,7 @@ class PlaybackController extends Controller
     {
         $ip = (string) $request->ip();
 
-        if (config("signage.allow_ip_override")) {
+        if (config('signage.allow_ip_override')) {
             $override = $request->input('ip');
             if (is_string($override) && $override !== '') {
                 $ip = $override;

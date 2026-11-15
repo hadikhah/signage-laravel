@@ -7,58 +7,59 @@ use App\Models\Department;
 use App\Models\Monitor;
 use App\Models\MonitorContent;
 use App\Models\Office;
+use App\Models\View;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $city   = City::factory()->create();
+    $city = City::factory()->create();
     $office = Office::create(['name' => 'HQ', 'city_id' => $city->id]);
-    $dept   = Department::create([
+    $dept = Department::create([
         'department_name' => 'IT',
-        'office_id'       => $office->id,
-        'is_child'        => false,
-        'daily_message'   => 'Welcome to IT',
+        'office_id' => $office->id,
+        'is_child' => false,
+        'daily_message' => 'Welcome to IT',
     ]);
     $this->dept = $dept;
 
     ApplicationSetting::query()->delete();
     ApplicationSetting::create([
-        'id'                  => 1,
-        'bypass_all_content'  => false,
+        'id' => 1,
+        'bypass_all_content' => false,
         'active_base_content' => false,
-        'last_update'         => null,
+        'last_update' => null,
     ]);
 });
 
 function makeM(array $overrides = []): Monitor
 {
     return Monitor::create(array_merge([
-        'ip_address'    => '10.0.0.1',
+        'ip_address' => '10.0.0.1',
         'department_id' => Department::first()->id,
-        'status'        => 'online',
+        'status' => 'online',
     ], $overrides));
 }
 
 function makeC(array $overrides = []): Content
 {
     return Content::factory()->create(array_merge([
-        'deleted'      => false,
-        'order'        => 0,
+        'deleted' => false,
+        'order' => 0,
         'content_type' => 1,
-        'uploaded_at'  => now(),
+        'uploaded_at' => now(),
     ], $overrides));
 }
 
 function linkMC(Monitor $m, Content $c, array $overrides = []): void
 {
     MonitorContent::create(array_merge([
-        'monitor_id'    => $m->id,
-        'content_id'    => $c->id,
+        'monitor_id' => $m->id,
+        'content_id' => $c->id,
         'content_order' => 1,
-        'display_time'  => 10,
-        'active'        => true,
+        'display_time' => 10,
+        'active' => true,
     ], $overrides));
 }
 
@@ -87,10 +88,10 @@ it('returns ResultCode 4000 with the legacy envelope', function () {
 it('serializes the content item with exact legacy field names', function () {
     $m = makeM();
     $c = makeC([
-        'content_name'     => 'welcome.jpg',
+        'content_name' => 'welcome.jpg',
         'client_file_name' => 'original.jpg',
-        'content_type'     => 1,
-        'uploaded_at'      => now(),
+        'content_type' => 1,
+        'uploaded_at' => now(),
     ]);
     linkMC($m, $c, ['display_time' => 10]);
 
@@ -179,8 +180,8 @@ it('default case: MonitorContents populated, ShareContents null, is_monitor_cont
 it('share case: ShareContents populated, MonitorContents null, is_monitor_content false', function () {
     ApplicationSetting::current()->update(['bypass_all_content' => true]);
 
-    $m  = makeM();
-    $c  = makeC();
+    $m = makeM();
+    $c = makeC();
     DB::table('share_monitors')->insert([
         'monitor_id' => $m->id, 'created_at' => now(), 'updated_at' => now(),
     ]);
@@ -211,9 +212,9 @@ it('unknown IP returns empty MonitorContents array with envelope intact', functi
 // -----------------------------------------------------------------------------
 
 it('honors ?view= query', function () {
-    $m    = makeM();
-    $view = \App\Models\View::create(['name' => 'morning']);
-    $c    = makeC();
+    $m = makeM();
+    $view = View::create(['name' => 'morning']);
+    $c = makeC();
     DB::table('monitor_views')->insert([
         'monitor_id' => $m->id, 'view_id' => $view->id,
         'created_at' => now(), 'updated_at' => now(),

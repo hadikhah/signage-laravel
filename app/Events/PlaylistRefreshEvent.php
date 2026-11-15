@@ -10,7 +10,6 @@ use Illuminate\Queue\SerializesModels;
 
 /**
  *  Signals the player to reload its playlist.
- * 
  */
 class PlaylistRefreshEvent implements ShouldBroadcastNow
 {

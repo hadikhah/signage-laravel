@@ -1,7 +1,11 @@
 <?php
 
+use App\Providers\AppServiceProvider;
+use App\Providers\FortifyServiceProvider;
+use App\Providers\MediaRouteServiceProvider;
+
 return [
-    App\Providers\AppServiceProvider::class,
-    App\Providers\FortifyServiceProvider::class,
-    App\Providers\MediaRouteServiceProvider::class,
+    AppServiceProvider::class,
+    FortifyServiceProvider::class,
+    MediaRouteServiceProvider::class,
 ];

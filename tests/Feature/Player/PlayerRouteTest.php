@@ -25,7 +25,7 @@ it('embeds the monitor IP safely as JSON', function () {
 it('escapes malicious ?ip= input', function () {
     // @json() must escape the < / > / " characters safely
     $payload = '</script><script>alert(1)</script>';
-    $r = $this->get('/monitor?ip=' . urlencode($payload));
+    $r = $this->get('/monitor?ip='.urlencode($payload));
 
     $r->assertOk();
     $r->assertDontSee($payload, false);      // raw payload must not appear

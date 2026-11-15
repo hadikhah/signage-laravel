@@ -15,7 +15,7 @@ it('dispatches PlaylistRefreshEvent with the given ip', function () {
     expect($r->json('ResultCode'))->toBe(5000);
     expect($r->json('Data.dispatched'))->toBeTrue();
 
-    Event::assertDispatched(PlaylistRefreshEvent::class, fn($e) => $e->ip === '10.0.0.1');
+    Event::assertDispatched(PlaylistRefreshEvent::class, fn ($e) => $e->ip === '10.0.0.1');
 });
 
 it('dispatches PlaylistRefreshEvent with null ip (refresh all)', function () {
@@ -23,7 +23,7 @@ it('dispatches PlaylistRefreshEvent with null ip (refresh all)', function () {
 
     $this->postJson('/api/v1/playback/refresh', [])->assertOk();
 
-    Event::assertDispatched(PlaylistRefreshEvent::class, fn($e) => $e->ip === null);
+    Event::assertDispatched(PlaylistRefreshEvent::class, fn ($e) => $e->ip === null);
 });
 
 it('broadcasts on the playlist.refresh public channel', function () {
@@ -35,5 +35,5 @@ it('broadcasts on the playlist.refresh public channel', function () {
 });
 
 it('uses the short event name PlaylistRefreshEvent', function () {
-    expect((new PlaylistRefreshEvent())->broadcastAs())->toBe('PlaylistRefresh');
+    expect((new PlaylistRefreshEvent)->broadcastAs())->toBe('PlaylistRefresh');
 });

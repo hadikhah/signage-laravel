@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Events\PlaylistRefreshEvent;
 use App\Http\Requests\RefreshRequest;
 use App\Legacy\Envelope;
-use Illuminate\Http\Request;
 
 class PlaybackRefreshController extends Controller
 {

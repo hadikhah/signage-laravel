@@ -19,6 +19,6 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('invitations/{invitation}', [TeamInvitationController::class, 'decline'])->name('invitations.decline');
 });
 
-Route::get("monitor", [MonitorController::class, "index"]);
+Route::get('monitor', [MonitorController::class, 'index']);
 
-require __DIR__ . '/settings.php';
+require __DIR__.'/settings.php';

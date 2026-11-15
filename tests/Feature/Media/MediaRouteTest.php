@@ -13,7 +13,7 @@ beforeEach(function () {
 it('serves an existing media file', function () {
     $c = Content::factory()->create([
         'content_name' => 'welcome.jpg',
-        'deleted'      => false,
+        'deleted' => false,
     ]);
     Storage::disk('media')->put("files/{$c->id}/welcome.jpg", 'fake-jpeg-bytes');
 
@@ -29,7 +29,7 @@ it('returns 404 for a missing content row', function () {
 it('returns 404 for a deleted content row', function () {
     $c = Content::factory()->create([
         'content_name' => 'x.jpg',
-        'deleted'      => true,
+        'deleted' => true,
     ]);
     Storage::disk('media')->put("files/{$c->id}/x.jpg", 'x');
 
