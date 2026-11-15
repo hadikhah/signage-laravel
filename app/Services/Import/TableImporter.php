@@ -111,8 +111,6 @@ final class TableImporter
             $payload['id'] = (int) $payload['id'];
         }
 
-        $payload = array_filter($payload, fn ($v) => $v !== null);
-
         $now = now();
         $payload['created_at'] = $payload['created_at'] ?? $now;
         $payload['updated_at'] = $now;

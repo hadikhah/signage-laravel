@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Events\DiagnosingHealth;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -26,6 +27,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // throws error if N+1 is happened , only in local mode
+        Model::preventLazyLoading(! app()->isProduction()); 
+
         $this->configureDefaults();
 
         Event::listen(function (DiagnosingHealth $event) {
