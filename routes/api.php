@@ -21,7 +21,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/monitors', [MonitorController::class, 'index']);
     Route::get('/monitors/list', [MonitorController::class, 'list']);
 
-    Route::get('/playback/monitor-contents', [PlaybackController::class, 'monitorContents']);
+    Route::get('/playback/monitor-contents', [PlaybackController::class, 'monitorContents'])
+        ->name('playback.monitor-contents');;
 });
 
 Route::get('/Content/MonitorContents', [PlaybackController::class, 'monitorContents']);

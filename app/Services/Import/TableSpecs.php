@@ -42,6 +42,14 @@ final class TableSpecs
                 columns: ['id', 'ip_address', 'host_name', 'department_id', 'mac_address', 'floor', 'wing', 'status', 'lock', 'description', 'platform', 'owner'],
                 requiredCols: ['id', 'ip_address', 'department_id'],
             ),
+
+            new TableSpec(
+                table: 'content_url_user_passwords',
+                csvFile: 'content_url_user_passwords.csv',
+                columns: ['id', 'url', 'user_name', 'password'],
+                requiredCols: ['id'],
+            ),
+            
             new TableSpec(
                 table: 'contents',
                 csvFile: 'contents.csv',
@@ -100,6 +108,8 @@ final class TableSpecs
                 columns: ['id', 'monitor_id'],
                 requiredCols: ['id', 'monitor_id'],
             ),
+
+
         ];
     }
 
