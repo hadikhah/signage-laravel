@@ -1,0 +1,124 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    padding: 0;
+    background: #f8fafc;
+    color: #0f172a;
+    font-family: -apple-system, system-ui, "Segoe UI", sans-serif;
+    line-height: 1.5;
+}
+
+.container {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.card.error {
+    border-color: #fecaca;
+    background: #fef2f2;
+}
+
+h1 { margin: 0 0 0.25rem; font-size: 1.35rem; }
+h1 small { color: #64748b; font-weight: 400; font-size: 0.9rem; }
+h2 { margin: 0 0 1rem; font-size: 1.1rem; }
+p { margin: 0.5rem 0; }
+.muted { color: #64748b; font-size: 0.9rem; }
+.hint { color: #475569; font-size: 0.85rem; padding-top: 0.5rem; border-top: 1px solid #e2e8f0; margin-top: 0.75rem; }
+.hint code { background: #f1f5f9; padding: 1px 5px; border-radius: 3px; font-size: 0.85em; }
+
+label {
+    display: block;
+    margin: 0.75rem 0;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+input[type="file"],
+input[type="url"],
+input[type="text"],
+input[type="password"],
+select {
+    display: block;
+    width: 100%;
+    margin-top: 0.35rem;
+    padding: 0.5rem 0.7rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-family: inherit;
+}
+
+input:focus,
+select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+button {
+    margin-top: 1rem;
+    padding: 0.55rem 1.25rem;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+button:hover:not(:disabled) { background: #1d4ed8; }
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.delete-btn {
+    background: transparent;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    padding: 0.3rem 0.75rem;
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+.delete-btn:hover:not(:disabled) { background: #fef2f2; }
+
+#form-message {
+    margin-top: 0.75rem;
+    font-size: 0.9rem;
+    min-height: 1.3em;
+}
+
+#form-message.error   { color: #b91c1c; }
+#form-message.success { color: #15803d; }
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+th, td {
+    text-align: left;
+    padding: 0.55rem 0.5rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+th {
+    color: #475569;
+    font-weight: 500;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+tr:last-child td { border-bottom: none; }
