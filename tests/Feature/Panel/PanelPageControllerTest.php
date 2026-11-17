@@ -7,6 +7,7 @@ use App\Models\Monitor;
 use App\Models\MonitorContent;
 use App\Models\Office;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 
 uses(RefreshDatabase::class);
 
@@ -195,4 +196,27 @@ it('shows the dev hint in local/testing environments', function () {
         ->assertOk()
         ->assertSee('Dev tip')
         ->assertSee('?ip=');
+});
+
+it('accepts URL submission via multipart form data (string content_type)', function () {
+    // Simulates browser FormData — content_type arrives as string "5"
+    $r = $this->post('/api/v1/panel/contents?ip=10.0.0.1', [
+        'content_type' => '5',
+        'url'          => 'https://google.com',
+    ], ['Accept' => 'application/json']);
+
+    $r->assertOk();
+    expect(Content::latest('id')->first()->content_type)->toBe(5);
+});
+
+it('accepts image upload via multipart form data (string content_type)', function () {
+    $file = UploadedFile::fake()->image('banner.jpg');
+
+    $r = $this->post('/api/v1/panel/contents?ip=10.0.0.1', [
+        'content_type' => '1',
+        'file'         => $file,
+    ], ['Accept' => 'application/json']);
+
+    $r->assertOk();
+    expect(Content::latest('id')->first()->content_type)->toBe(1);
 });

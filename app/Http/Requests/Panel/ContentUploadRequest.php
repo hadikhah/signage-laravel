@@ -27,7 +27,7 @@ class ContentUploadRequest extends FormRequest
      */
     public function rules(): array
     {
-        $type = $this->input('content_type');
+        $type = $this->enum('content_type', ContentType::class);
 
         return [
             'content_type' => [
@@ -41,39 +41,39 @@ class ContentUploadRequest extends FormRequest
             ],
 
             'file' => [
-                Rule::when($type === ContentType::Image->value, [
+                Rule::when($type === ContentType::Image, [
                     'required',
                     'file',
                     'max:' . self::MAX_FILE_KB,
-                    'mimetypes:image/jpeg,image/png,image/gif,image/webp'
+                    'mimetypes:image/jpeg,image/png,image/gif,image/webp',
                 ]),
-                Rule::when($type === ContentType::Video->value, [
+                Rule::when($type === ContentType::Video, [
                     'required',
                     'file',
                     'max:' . self::MAX_FILE_KB,
                     'mimes:mp4,webm,mov',
                 ]),
-                Rule::when($type === ContentType::Url->value, ['prohibited']),
+                Rule::when($type === ContentType::Url, ['prohibited']),
             ],
 
             'url' => [
-                Rule::when($type === ContentType::Url->value, [
+                Rule::when($type === ContentType::Url, [
                     'required',
                     'string',
                     'max:500',
                     'url:http,https',
                 ]),
-                Rule::when($type !== ContentType::Url->value, ['prohibited']),
+                Rule::when($type !== ContentType::Url, ['prohibited']),
             ],
 
             'url_user_name' => [
-                Rule::when($type === ContentType::Url->value, ['nullable', 'string', 'max:255']),
-                Rule::when($type !== ContentType::Url->value, ['prohibited']),
+                Rule::when($type === ContentType::Url, ['nullable', 'string', 'max:255']),
+                Rule::when($type !== ContentType::Url, ['prohibited']),
             ],
 
             'url_password' => [
-                Rule::when($type === ContentType::Url->value, ['nullable', 'string', 'max:255']),
-                Rule::when($type !== ContentType::Url->value, ['prohibited']),
+                Rule::when($type === ContentType::Url, ['nullable', 'string', 'max:255']),
+                Rule::when($type !== ContentType::Url, ['prohibited']),
             ],
         ];
     }
