@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\CityController;
 use App\Http\Controllers\Api\V1\DepartmentController;
 use App\Http\Controllers\Api\V1\MonitorController;
 use App\Http\Controllers\Api\V1\OfficeController;
+use App\Http\Controllers\Api\V1\Panel\ContentController;
 use App\Http\Controllers\Api\V1\PlaybackController;
 use App\Http\Controllers\PlaybackRefreshController;
 use Illuminate\Support\Facades\Route;
@@ -28,6 +29,14 @@ Route::prefix('v1')->group(function () {
     Route::post('/playback/refresh', PlaybackRefreshController::class)
         ->middleware('throttle:10,1')
         ->name('playback.refresh');
+
+    Route::post('/panel/contents', [ContentController::class, 'store'])
+        ->middleware('throttle:20,60')
+        ->name('panel.contents.store');
+
+    Route::delete('/panel/contents/{content}', [ContentController::class, 'destroy'])
+        ->middleware('throttle:20,60')
+        ->name('panel.contents.destroy');
 });
 
 Route::get('/Content/MonitorContents', [PlaybackController::class, 'monitorContents']);

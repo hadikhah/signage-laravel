@@ -266,7 +266,7 @@ final class PlaylistResolver
             userId: $content->user_id,
             userName: $content->user?->name,
             contentType: (int) $content->content_type,
-            contentPath: $path, // TODO url should be encoded (fallback content needed)
+            contentPath: $path,
             clientFileName: $content->client_file_name,
             fromDate: $content->from_date,
             toDate: $content->to_date,
