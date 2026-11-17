@@ -351,6 +351,168 @@ confidence level of each guess. When fixtures land, corrections go into
 
 -----
 
+## Panel
+
+Self-service content management for a monitor. A monitor can upload images,
+videos, and URLs for itself, list its current contents, and delete
+individual items. Gated by IP: only the caller's own monitor can manage
+its contents. See ADR-0010.
+
+### Endpoints
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/panel` | Panel page (HTML) |
+| POST | `/api/v1/panel/contents` | Upload image/video, or create URL content |
+| DELETE | `/api/v1/panel/contents/{id}` | Detach from caller's monitor; delete if orphaned |
+
+Query param `?ip=` overrides the caller's IP — **dev only** (local /
+development / testing). Same rule as `/monitor` and `/api/v1/playback/*`.
+
+### Upload form fields
+
+| Field | When | Notes |
+|---|---|---|
+| `content_type` | always | `1` image, `2` video, `5` URL |
+| `file` | `content_type in [1,2]` | Image or video file |
+| `url` | `content_type = 5` | Must be http:// or https:// |
+| `url_user_name` | optional, URL only | |
+| `url_password` | optional, URL only | |
+| `display_time` | image and URL only | 1–300 seconds; video auto-advances on `ended` |
+
+File size cap: **10 MB**. Single constant in `ContentUploadRequest::MAX_FILE_KB`.
+To change: bump the constant **and** `docker/8.4/php.ini`:
+- `upload_max_filesize = new_limit + 2M`
+- `post_max_size = upload_max_filesize + 2M`
+
+### Common curls
+
+```bash
+# Upload an image (30-second duration)
+curl -s -X POST 'http://localhost/api/v1/panel/contents?ip=10.0.0.1' \
+  -F 'content_type=1' \
+  -F 'file=@/tmp/banner.jpg' \
+  -F 'display_time=30' | jq
+
+# Create URL content (60-second duration)
+curl -s -X POST 'http://localhost/api/v1/panel/contents?ip=10.0.0.1' \
+  -F 'content_type=5' \
+  -F 'url=https://example.com' \
+  -F 'display_time=60' | jq
+
+# Delete
+curl -s -X DELETE 'http://localhost/api/v1/panel/contents/5?ip=10.0.0.1' | jq
+# → { "detached": true, "deleted": true|false }
+```
+
+### Response shapes
+
+**Upload success (POST):**
+
+```json
+{
+  "ResultCode": 5000,
+  "Message": null,
+  "Data": {
+    "contentId": 7,
+    "contentName": "a1b2c3d4-....jpg",
+    "contentPath": "/media/files/7/a1b2c3d4-....jpg"
+  }
+}
+```
+
+**Delete (DELETE):**
+
+```json
+{
+  "ResultCode": 5000,
+  "Message": null,
+  "Data": { "detached": true, "deleted": true }
+}
+```
+
+`deleted: true` means the content was used only by this monitor and the
+content row was soft-deleted. `deleted: false` means other monitors still
+use it — only this monitor's link was removed.
+
+### Error codes
+
+| Status | When |
+|---|---|
+| 404 | No monitor registered at caller's IP |
+| 403 | Delete requested for content that doesn't belong to caller |
+| 422 | Validation failure (bad file type, size, URL scheme, missing display_time) |
+| 500 | Server-side file storage failure (logged) |
+
+### Storage layout
+
+Files stored at `storage/app/media/files/{content_id}/{hash}.{ext}`:
+
+- `{hash}` = random hash from `$file->hashName()`
+- `{ext}` = server-detected extension (MIME-derived, not the client-claimed one)
+- Original filename preserved in `contents.client_file_name` for display
+
+Do not rename files on disk — `MediaController` and `signage:doctor` both
+look for `{content_id}/{content_name}`.
+
+### Deletion semantics
+
+`DELETE /api/v1/panel/contents/{id}`:
+
+1. Detach pivot (`monitor_contents` row for this monitor) — always.
+2. If no other monitor uses the content:
+   - `contents.deleted = true`
+   - file removed from disk **after commit**
+
+If the file deletion fails (permissions, locked), the content row is still
+soft-deleted. `signage:doctor` will report the orphan file. A future
+cleanup cron can sweep — see `TODO` in the service.
+
+### Verification
+
+```bash
+docker-compose exec app php artisan test tests/Feature/Api/V1/Panel
+# → 21 tests
+
+docker-compose exec app php artisan test tests/Feature/Panel
+# → 9 tests
+
+# Real stack
+docker-compose exec app php artisan migrate:fresh
+docker-compose exec app php artisan signage:import-legacy
+open 'http://localhost/panel?ip=10.0.0.1'
+# → form + list of 6 contents
+
+# Upload something and watch the player pick it up
+open 'http://localhost/monitor?ip=10.0.0.1'      # in a browser
+# then upload in the panel — player reloads within ~1s
+```
+
+### Files
+
+| File | Role |
+|---|---|
+| `app/Http/Controllers/Panel/PanelPageController.php` | Panel HTML render |
+| `app/Http/Controllers/Api/V1/Panel/ContentController.php` | Upload / delete API |
+| `app/Http/Requests/Panel/ContentUploadRequest.php` | Validation |
+| `app/Services/Panel/ContentUploadService.php` | Write path (upload, createUrl, delete) |
+| `app/Services/Panel/DeletionResult.php` | DTO returned by `delete()` |
+| `app/Exceptions/Panel/*` | Domain exceptions (422 / 403 / 500 mapping) |
+| `resources/views/panel/index.blade.php` | Form + list |
+| `public/assets/panel/panel.css`, `panel.js` | Styles + client JS |
+| `docker/8.4/php.ini` | `upload_max_filesize = 12M`, `post_max_size = 14M` |
+
+### Pitfalls
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `GET /panel` → **403 Forbidden** from nginx | `public/panel/` directory shadows the route | Assets must live in `public/assets/panel/` (see "Where do public assets live?" in project-structure) |
+| Upload fails with 422 "`file` is required" on browser but works in tests | `public/panel/` bug shadowing routes | Same fix — check `public/assets/panel/` is where assets actually are |
+| `content_type=5` → 422 "`url` field is prohibited" | String `"5"` compared to int `5` in validation | Fixed in `ContentUploadRequest` via `is_numeric()` + `tryFrom` |
+| `content_type=abc` → 500 | `$request->enum()` calls `tryFrom("abc")` → `TypeError` | Fixed via `is_numeric()` guard |
+| Video upload → 422 "`display_time` is prohibited" | Field submitted as hidden input | JS must use `input.disabled = true`, not `display: none` |
+
+
 ## Running tests
 
 ```bash

@@ -27,16 +27,17 @@
 |---|---|---|---|
 | 1 — Project skeleton | 1 | ✅ Done | nginx + php-fpm, `/up` healthcheck, Postgres 17, Redis 7 |
 | 2 — Reference schema | 2 | ✅ Done | cities, offices, departments, monitors, application_settings |
-| 3 — Content schema | 3 | ⚠️ Partial | contents + monitor_contents landed; other content tables blocked on missing spec (see [Pending](#pending--blocked)) |
+| 3 — Content schema | 3 | ⚠️ Partial | contents + monitor_contents landed; remaining content tables are stubs accepted as-is (see [Pending](#pending--blocked)) |
 | 4 — Import command | 4 | ✅ Done | `signage:import-legacy` with dry-run, truncate, only, idempotent |
-| 5 — Reference APIs | 5 | ⏸️ Blocked | waiting on `04-API-CONTRACT.md` |
+| 5 — Reference APIs | 5 | ✅ Done | 8 endpoints, envelope + pagination + search + sort; ADR-0001 |
 | 6 — Playlist resolver | 6–7 | ✅ Done | Rules 1–6 per spec; date-filter precedence per ADR-0002; 25 tests |
 | 7 — Playback + media | 8 | ✅ Done | `/api/v1/playback/monitor-contents`, legacy alias `/api/Content/MonitorContents`, `/media/files/{id}/{name}`, Verta-based Persian dates |
 | 8 — Player + Reverb | 9 | ✅ Done | `/monitor` full-screen loop, crossfade overlay, Reverb `playlist.refresh` channel, `POST /api/v1/playback/refresh` |
-| 9 — Tests + doctor | 10 | ⏸️ Pending | |
+| 9 — Tests + doctor | 10 | ✅ Done | contract fixtures, SignageDoctor command, Playwright |
 | 10 — Demo + handover | 10 | ⏸️ Pending | |
+| Panel (post-Step-9) | — | ✅ Done | Self-service upload (image/video/URL) for caller's own monitor. IP-gated. 10MB cap. ADR-0010. |
 
-**Scope note:** this is a **read-only slice**. No writes, no uploads, no admin UI. Only imports (via CLI) and reads (via API).
+**Scope note:** the core slice is **read-only**. The post-Step-9 Panel is the only write/upload path — self-service upload (image/video/URL) for the caller's own monitor, IP-gated, 10MB cap (ADR-0010). No general admin UI.
 
 ---
 
@@ -62,28 +63,43 @@ signage-laravel/
 ├── app/
 │   ├── Console/
 │   │   └── Commands/
-│   │       └── ImportLegacySignage.php         ← Step 4
+│   │       ├── ImportLegacySignage.php         ← Step 4
+│   │       └── SignageDoctor.php               ← Step 9
 │   ├── Enums/
 │   │   └── ContentType.php                     ← Step 3
 │   ├── Events/
-│   │   └── PlaylistRefresh.php                 ← Step 8
+│   │   └── PlaylistRefreshEvent.php                 ← Step 8
+│   ├── Exceptions/
+│   │   └── Panel/
+│   │       ├── ContentPanelException.php       ← Panel
+│   │       ├── ContentDeletedException.php     ← Panel
+│   │       ├── ContentOwnershipException.php   ← Panel
+│   │       ├── FileStorageException.php        ← Panel
+│   │       └── UnsupportedContentTypeException.php ← Panel
 │   ├── Http/
-│   │   ├── Controllers/                        
-│   │   │   └── Api/
-│   │   │       └── V1/
-│   │   │           ├── CityController.php      ← Step 5
-│   │   │           ├── OfficeController.php    ← Step 5
-│   │   │           ├── DepartmentController.php← Step 5
-│   │   │           ├── MonitorController.php   ← Step 5
-│   │   │           ├── PlaybackController.php  ← Step 7
-│   │   │           └── Concerns/
-│   │   │               └── HandlesPaginatedList.php  ← Step 5
-│   │   │   └── MediaController.php             ← Step 7
+│   │   ├── Controllers/
+│   │   │   ├── Api/
+│   │   │   │   └── V1/
+│   │   │   │       ├── CityController.php      ← Step 5
+│   │   │   │       ├── OfficeController.php    ← Step 5
+│   │   │   │       ├── DepartmentController.php ← Step 5
+│   │   │   │       ├── MonitorController.php   ← Step 5
+│   │   │   │       ├── PlaybackController.php  ← Step 7
+│   │   │   │       ├── PlaybackRefreshController.php ← Step 8
+│   │   │   │       ├── Concerns/
+│   │   │   │       │   └── HandlesPaginatedList.php  ← Step 5
+│   │   │   │       └── Panel/
+│   │   │   │           └── ContentController.php ← Panel
+│   │   │   ├── MediaController.php             ← Step 7
+│   │   │   └── Panel/
+│   │   │       └── PanelPageController.php     ← Panel
 │   │   ├── Middleware/
 │   │   ├── Requests/                           ← Step 5+
-│   │   │   └── PaginatedRequest.php            ← Step 5
-│   │   │   └── PlaybackRequest.php             ← Step 7
-│   │   │   └── RefreshRequest.php              ← Step 8
+│   │   │   ├── PaginatedRequest.php            ← Step 5
+│   │   │   ├── PlaybackRequest.php             ← Step 7
+│   │   │   ├── RefreshRequest.php              ← Step 8
+│   │   │   └── Panel/
+│   │   │       └── ContentUploadRequest.php    ← Panel
 │   │   └── Resources/                          ← Step 5
 │   │       ├── CityResource.php                ← Step 5
 │   │       ├── OfficeResource.php              ← Step 5
@@ -120,6 +136,9 @@ signage-laravel/
 │       │   ├── TableImporter.php
 │       │   ├── TableSpec.php
 │       │   └── TableSpecs.php
+│       ├── Panel/                              ← Panel
+│       │   ├── ContentUploadService.php
+│       │   └── DeletionResult.php
 │       ├── Playback/                           ← Step 7
 │       │   └── PlaybackTransformer.php
 │       ├── Playlist/                           ← Step 6
@@ -145,33 +164,40 @@ signage-laravel/
 │   │   ├── Dockerfile
 │   │   ├── supervisord.conf                    ([program:php], [program:reverb])
 │   │   ├── start-container
-│   │   ├── php.ini
+│   │   ├── php.ini                             ← Panel (upload_max_filesize=12M, post_max_size=14M)
 │   │   └── www.conf
 │   └── nginx/
 │       └── default.conf
 ├── docs/
-│   └── decisions/
-│       └── 0001-api-contract-assumptions.md    ← Step 5 ADR
-│       ├── 0002-date-filter-behavior.md        ← Step 6
-│       ├── 0003-ip-variant-matching.md         ← Step 6
-│       ├── 0004-media-route-loading.md         ← Step 7
-│       ├── 0005-ip-override-scoping.md         ← Step 7
-│       ├── 0006-reverb-embedded-in-app.md      ← Step 8
-│       └── 0007-public-broadcast-channel.md    ← Step 8
+│   ├── decisions/
+│   │   ├── 0001-api-contract-assumptions.md    ← Step 5 ADR
+│   │   ├── 0002-date-filter-behavior.md        ← Step 6
+│   │   ├── 0003-ip-variant-matching.md         ← Step 6
+│   │   ├── 0004-media-route-loading.md         ← Step 7
+│   │   ├── 0005-ip-override-scoping.md         ← Step 7
+│   │   ├── 0006-reverb-embedded-in-app.md      ← Step 8
+│   │   ├── 0007-public-broadcast-channel.md    ← Step 8
+│   │   └── 0010-panel-access-and-upload-strategy.md ← Panel
 │   ├── project-structure.md                    ← this file
-│   └── runbook.md                              ← ADRs (Step 6+)
+│   └── runbook.md                              ← operational procedures
 ├── public/
+│   ├── assets/
+│   │   └── panel/
+│   │       ├── panel.css                       ← Panel
+│   │       └── panel.js                        ← Panel
 │   └── player/
 │       ├── player.css                          ← Step 8
 │       └── player.js                           ← Step 8
 ├── resources/
 │   └── views/
+│       ├── panel/
+│       │   └── index.blade.php                 ← Panel
 │       └── player/                             ← Step 8
 ├── routes/
-│   ├── api.php                                 ← Step 5 (v1 group),Step 7 (playback + legacy alias) ,Step 8 (refresh)
+│   ├── api.php                                 ← Step 5 (v1 group), Step 7 (playback + legacy alias), Step 8 (refresh), Panel (POST/DELETE /api/v1/panel/contents)
 │   ├── console.php
 │   ├── media.php                               ← Step 7 (loaded via MediaRouteServiceProvider)
-│   ├── web.php                                 ← Step 8 (/monitor)
+│   ├── web.php                                 ← Step 8 (/monitor), Panel (GET /panel)
 │   └── up.php                                  ← Step 1 (health endpoint)
 ├── storage/
 │   └── app/
@@ -179,20 +205,37 @@ signage-laravel/
 │           └── export/                         ← gitignored, sample CSVs
 ├── tests/
 │   ├── Feature/
-│   │   ├── Api/V1/                             ← Step 5
-│   │   │   ├── MonitorApiTest.php              ← Step 5
-│   │   │   └── PlaybackApiTest.php             ← Step 7
-│   │   │   └── PlaybackRefreshApiTest.php      ← Step 8
-│   │   └── Console/
-│   │       └── ImportLegacySignageTest.php     ← Step 4
-│   │   └── Media/
-│   │       └── MediaRouteTest.php              ← Step 7
+│   │   ├── Api/
+│   │   │   └── V1/
+│   │   │       ├── CityApiTest.php             ← Step 5
+│   │   │       ├── OfficeApiTest.php           ← Step 5
+│   │   │       ├── DepartmentApiTest.php       ← Step 5
+│   │   │       ├── MonitorApiTest.php          ← Step 5
+│   │   │       ├── PlaybackApiTest.php         ← Step 7
+│   │   │       ├── PlaybackRefreshApiTest.php  ← Step 8
+│   │   │       └── Panel/
+│   │   │           └── ContentControllerTest.php ← Panel
+│   │   ├── Commands/
+│   │   │   └── SignageDoctorTest.php           ← Step 9
+│   │   ├── Console/
+│   │   │   └── ImportLegacySignageTest.php     ← Step 4
+│   │   ├── Contract/
+│   │   │   ├── PlaybackContractTest.php        ← Step 9
+│   │   │   └── ReferenceApiContractTest.php    ← Step 9
+│   │   ├── Media/
+│   │   │   └── MediaRouteTest.php              ← Step 7
+│   │   ├── Panel/
+│   │   │   └── PanelPageControllerTest.php     ← Panel
 │   │   └── Player/
 │   │       └── PlayerRouteTest.php             ← Step 8
+│   ├── Fixtures/
+│   │   └── legacy/
+│   │       └── api/
+│   │           └── *.json                      ← Contract fixtures
 │   ├── Unit/
 │   │   └── Services/
-│   │       ├── Import/                         ← Step 6
-│   │           └── CsvReaderTest.php           ← Step 4
+│   │       ├── Import/                         ← Step 4
+│   │       │   └── CsvReaderTest.php           ← Step 4
 │   │       ├── Playlist/                       ← Step 6
 │   │       │   ├── IpNormalizerTest.php
 │   │       │   └── PlaylistResolverTest.php
@@ -207,7 +250,7 @@ signage-laravel/
 └── pint.json
 ```
 
-Legend: `← Step N` = first introduced by that step. `(stub)` = migration + model only, schema pending spec.
+Legend: `← Step N` = first introduced by that step. `← Panel` = post-Step-9 self-service panel. `(stub)` = migration + model only, schema pending spec.
 
 ---
 
@@ -225,7 +268,7 @@ Code is organized by **concern**, not by **feature** (mostly):
 ┌───────────────────────────▼──────────────────────────────────┐
 │ Services/                                                    │
 │   All reusable business logic. Testable in isolation.        │
-│   Subfolder per domain (Import/, Playlist/, Api/, ...).      │
+│   Subfolder per domain (Import/, Playlist/, Panel/, ...).    │
 └───────────────────────────┬──────────────────────────────────┘
                             │
 ┌───────────────────────────▼──────────────────────────────────┐
@@ -288,7 +331,7 @@ docker-compose exec app composer dump-autoload 2>&1 \
 | Command | `<Verb><Noun>` | `ImportLegacySignage` |
 | Service (action) | `<Noun><Verb>er` | `CsvReader`, `TableImporter` |
 | Service (resolver) | `<Noun>Resolver` | `PlaylistResolver` (Step 6) |
-| Service (helper) | `<Noun>` | `PersianDate`, `LegacyEnvelope` |
+| Service (helper) | `<Noun>` | `PersianDate`, `Envelope` |
 | Value object | `<Noun>` | `CsvRow`, `TableSpec` |
 | Enum | `<Noun>` | `ContentType` |
 | Controller | `<Noun>Controller` | `CityController` |
@@ -306,7 +349,7 @@ docker-compose exec app composer dump-autoload 2>&1 \
 
 ### Envelope (Step 5+)
 
-- Centralized in `app/Services/Api/LegacyEnvelope.php` (once Step 5 begins)
+- Centralized in `app/Legacy/Envelope.php` and `app/Legacy/Codes.php`
 - **Every** API controller response goes through it — no hand-built `{ ResultCode, Message, Data }` in a controller
 - Field names are **PascalCase** for legacy client compatibility: `ResultCode`, `Message`, `Data`, `ContentId`, `ClientFileName` — not snake_case
 
@@ -332,6 +375,22 @@ docker-compose exec app composer dump-autoload 2>&1 \
 route file requires either a `then:` block in `bootstrap/app.php` or a
 dedicated ServiceProvider (see ADR-0004).
 
+### Where do public assets live?
+
+All app-owned static assets live under `public/assets/{feature}/`. Never `public/{feature}/`
+if a route with the same name exists — nginx `try_files $uri $uri/ /index.php` serves the
+directory before falling through, producing 403 on the route. Examples: `public/assets/panel/`,
+`public/assets/player/` (migrate `public/player/` if the `/player` route is ever added).
+
+### Exception handling in controllers
+
+Catch specific domain exception types, never base classes. Do not `catch (\RuntimeException $e)` —
+it masks bugs as validation errors. Map:
+- UnsupportedContentTypeException → 422
+- ContentDeletedException → 422
+- ContentOwnershipException → 403
+- FileStorageException → 500 (log via `report()`)
+All panel domain exceptions extend `ContentPanelException`.
 
 ---
 
@@ -476,6 +535,7 @@ If you edit `.env` (`REVERB_*` or `BROADCAST_CONNECTION`), run:
 docker-compose exec app php artisan config:clear
 docker-compose exec app php artisan config:cache
 docker-compose restart app
+```
 
 ### Sample CSVs for manual testing
 
@@ -491,8 +551,7 @@ Generated CSVs are written to `storage/app/legacy/export/` which is gitignored.
 
 | Blocker | Blocks | Where to ask |
 |---|---|---|
-| `04-API-CONTRACT.md` | Step 5 — field names, pagination shape, `ResultCode` map | PO / moderator |
-| `05-DATA-MODEL.md` | Step 3 completion + Step 6 — `share_*`, `base_*`, `views`, `monitor_views`, `monitor_view_monitors` structure | PO / moderator |
+| `05-DATA-MODEL.md` | Future refinements only — `share_*`, `base_*`, `views`, `monitor_views`, `monitor_view_monitors` structure. Step 3 and Step 6 shipped with stub schemas accepted as-is. | PO / moderator |
 
 ### Resolved
 
@@ -519,6 +578,15 @@ Generated CSVs are written to `storage/app/legacy/export/` which is gitignored.
 | Flash support | Fallback only (Ruffle deferred) | `playFlash()` TODO |
 | URL auto-login | Not implemented (browser blocks) | `playUrl()` TODO |
 
+### Panel-specific TODOs
+
+| TODO | Notes |
+|---|---|
+| Credential encryption at rest | TODO(security), needs coordinated migration |
+| Reorder UI | `content_order` auto-assigned |
+| Edit duration | delete + reupload required |
+| Bulk upload | — |
+| Attach-existing-content | would exercise the full concurrency guards |
 
 ### Known TODOs in code
 
@@ -536,43 +604,16 @@ Highlights:
 - `views` — relation to monitors (direct FK vs pivot)
 - `monitor_views` / `monitor_view_monitors` — entity vs pivot, or drop entirely
 - `monitor_contents.active` — default `false` confirmed (preview-before-live), but PO should confirm
-- `PersianDate` — placeholder, implement in Step 7
 
 ### Deferred (not blocking, but tracked)
 
 - `application_settings` singleton enforcement — CSV could contain multiple rows; needs decision
-- Pest data-model test — writing one consolidated `ModelsAndFactoriesTest` after all tables land
+- Pest data-model test — never written; deferred past Step 9 (consolidated `ModelsAndFactoriesTest` was not added)
 - Insert-vs-update counting optimization — current per-row `exists()` check is fine at fixture scale
 
 ---
 
 ## Where future steps add code
-
-### Step 7 — Playback endpoint + media
-
-```
-app/Http/Controllers/Api/V1/PlaybackController.php
-app/Http/Controllers/MediaController.php
-app/Services/Api/PlaybackEnvelope.php       (or extend LegacyEnvelope)
-app/Support/Ip.php                          (normalize / isLocal — TODO from Step 3)
-routes/api.php                              (add /api/Content/MonitorContents legacy alias)
-```
-
-### Step 8 — Player
-
-```
-resources/views/player/index.blade.php
-public/player/index.js
-routes/web.php                              (add /monitor route)
-```
-
-### Step 9 — Tests + doctor
-
-```
-app/Console/Commands/SignageDoctor.php
-tests/Feature/Commands/SignageDoctorTest.php
-tests/Fixtures/legacy/export/               (frozen fixture set)
-```
 
 ### Step 10 — Demo + handover
 
@@ -596,6 +637,8 @@ This document is intentionally **horizontal by concern** (layout, layers, conven
 | Step scope changes | Status · Pending / blocked |
 | New resolver / orchestration service | Repository layout · Architectural layers (if new category) · Pending (if new TODO) |
 | New broadcast event / channel | Repository layout (Events) · Broadcasting section · ADRs |
+| New public asset folder | Repository layout · "Where do public assets live?" |
+| New domain exception | Repository layout · "Exception handling in controllers" |
 
 
 **Rule of thumb:** if a future maintainer can't tell from this doc where a new file should go, the doc is stale — update the "Repository layout" tree and the relevant step's "Where future steps add code" block.
