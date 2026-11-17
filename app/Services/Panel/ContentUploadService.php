@@ -39,21 +39,25 @@ final class ContentUploadService
 
     private const URL_DISPLAY = 10;
 
-    public function uploadFile(Monitor $monitor, UploadedFile $file, ContentType $type): Content
-    {
+    public function uploadFile(
+        Monitor $monitor,
+        UploadedFile $file,
+        ContentType $type,
+        ?int $displayTime = null,
+    ): Content {
         $this->assertFileUploadType($type);
 
         $storedPath = null;
 
         try {
-            return DB::transaction(function () use ($monitor, $file, $type, &$storedPath) {
+            return DB::transaction(function () use ($monitor, $file, $type, &$storedPath, $displayTime) {
                 $order = $this->lockMonitorAndNextOrder($monitor);
                 $content = $this->createFileContent($file, $type, $order);
 
                 $storedPath = "files/{$content->id}/{$content->content_name}";
                 $this->storeFile($file, $content);
 
-                $this->attachToMonitor($monitor, $content, $type, $order);
+                $this->attachToMonitor($monitor, $content, $type, $order, $displayTime);
 
                 return $content->fresh(['contentUrlUserPassword', 'user']);
             });
@@ -75,12 +79,13 @@ final class ContentUploadService
         string $url,
         ?string $userName = null,
         ?string $password = null,
+        ?int $displayTime = null,
     ): Content {
-        return DB::transaction(function () use ($monitor, $url, $userName, $password) {
+        return DB::transaction(function () use ($monitor, $url, $userName, $password, $displayTime) {
             $order = $this->lockMonitorAndNextOrder($monitor);
             $content = $this->createUrlContent($url, $userName, $password, $order);
 
-            $this->attachToMonitor($monitor, $content, ContentType::Url, $order);
+            $this->attachToMonitor($monitor, $content, ContentType::Url, $order, $displayTime);
 
             return $content->fresh(['contentUrlUserPassword', 'user']);
         });
@@ -280,6 +285,7 @@ final class ContentUploadService
         Content $content,
         ContentType $type,
         int $order,
+        ?int $displayTime = null,
     ): MonitorContent {
         $locked = Content::query()
             ->where('id', $content->id)
@@ -298,7 +304,7 @@ final class ContentUploadService
             'monitor_id' => $monitor->id,
             'content_id' => $locked->id,
             'content_order' => $order,
-            'display_time' => $this->defaultDisplayTime($type),
+            'display_time' => $displayTime ?? $this->defaultDisplayTime($type),
             'active' => true,
         ]);
     }

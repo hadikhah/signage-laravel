@@ -12,14 +12,25 @@
 	const fileInput = document.getElementById('file');
 	const urlFields = document.getElementById('url-fields');
 	const urlInput = form.querySelector('[name="url"]');
+	const durationRow = document.getElementById('duration-row');
+	const durationInput = document.getElementById('display_time');
 	const msgEl = document.getElementById('form-message');
 
 	function syncFields() {
 		const isUrl = typeSelect.value === '5';
+		const isVideo = typeSelect.value === '2';
+
 		fileRow.style.display = isUrl ? 'none' : 'block';
 		fileInput.required = !isUrl;
+
 		urlFields.style.display = isUrl ? 'block' : 'none';
 		urlInput.required = isUrl;
+
+		// Video advances on `ended` — duration is not applicable.
+		// Disable the input (not just hide it) so the field is not submitted;
+		// the request validation marks it as `prohibited` for video.
+		durationRow.style.display = isVideo ? 'none' : 'block';
+		durationInput.disabled = isVideo;
 	}
 	typeSelect.addEventListener('change', syncFields);
 	syncFields();

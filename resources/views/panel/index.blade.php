@@ -5,7 +5,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Signage Panel</title>
-    <link rel="stylesheet" href="{{ asset('assets/panel/panel.css') }}?v={{ filemtime(public_path('assets/panel/panel.css')) }}">
+    <link rel="stylesheet"
+        href="{{ asset('assets/panel/panel.css') }}?v={{ filemtime(public_path('assets/panel/panel.css')) }}">
 </head>
 
 <body>
@@ -23,7 +24,7 @@
         @else
             <div class="card">
                 <h1>{{ $monitor->host_name ?? 'Monitor' }} <small>({{ $monitor->ip_address }})</small></h1>
-                <p class="muted">{{ $contents->count() }} content(s)</p>
+                <p class="muted">{{ $monitorContents->count() }} content(s)</p>
             </div>
 
             <div class="card">
@@ -55,6 +56,15 @@
                         </label>
                     </div>
 
+                    <div id="duration-row">
+                        <label>Display duration (1&ndash;300 seconds)
+                            <input type="number" name="display_time" id="display_time" min="1" max="300"
+                                value="10" required>
+                        </label>
+                        <small class="muted">How long to show this before advancing to the next item.</small>
+                    </div>
+
+
                     <button type="submit">Upload</button>
                     <div id="form-message" role="status"></div>
                 </form>
@@ -62,7 +72,7 @@
 
             <div class="card">
                 <h2>Current contents</h2>
-                @if ($contents->isEmpty())
+                @if ($monitorContents->isEmpty())
                     <p class="muted">No contents yet.</p>
                 @else
                     <table>
@@ -70,19 +80,30 @@
                             <tr>
                                 <th>Type</th>
                                 <th>Name</th>
+                                <th>Duration</th>
                                 <th>Order</th>
                                 <th></th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($contents as $c)
+                            @foreach ($monitorContents as $monitorContent)
                                 <tr>
-                                    <td>{{ ['1' => 'Image', '2' => 'Video', '3' => 'Text', '4' => 'Flash', '5' => 'URL'][$c->content_type] ?? '?' }}
+                                    <td>{{ ['1' => 'Image', '2' => 'Video', '3' => 'Text', '4' => 'Flash', '5' => 'URL'][$monitorContent->content->content_type] ?? '?' }}
                                     </td>
-                                    <td>{{ $c->client_file_name ?? $c->content_name }}</td>
-                                    <td>{{ $c->order }}</td>
+                                    <td>{{ $monitorContent->content->client_file_name ?? $monitorContent->content->content_name }}
+                                    </td>
+
                                     <td>
-                                        <button class="delete-btn" data-id="{{ $c->id }}">Delete</button>
+                                        {{ $monitorContent->content->content_type === App\Enums\ContentType::Video->value ? '—' : $monitorContent->display_time . 's' }}
+                                    </td>
+
+                                    <td>
+                                        {{ $monitorContent->content->order }}
+                                    </td>
+
+                                    <td>
+                                        <button class="delete-btn"
+                                            data-id="{{ $monitorContent->content->id }}">Delete</button>
                                     </td>
                                 </tr>
                             @endforeach

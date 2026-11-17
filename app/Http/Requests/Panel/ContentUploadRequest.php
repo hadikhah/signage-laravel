@@ -11,6 +11,10 @@ class ContentUploadRequest extends FormRequest
 {
     private const MAX_FILE_KB = 10240;
 
+    private const MIN_DURATION = 1;
+
+    private const MAX_DURATION = 300;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -26,7 +30,9 @@ class ContentUploadRequest extends FormRequest
      */
     public function rules(): array
     {
-        $type = $this->enum('content_type', ContentType::class);
+        $raw = $this->input('content_type');
+        $type = is_numeric($raw) ? ContentType::tryFrom((int) $raw) : null;
+        $isImageOrUrl = in_array($type, [ContentType::Image, ContentType::Url], true);
 
         return [
             'content_type' => [
@@ -53,6 +59,16 @@ class ContentUploadRequest extends FormRequest
                     'mimes:mp4,webm,mov',
                 ]),
                 Rule::when($type === ContentType::Url, ['prohibited']),
+            ],
+
+            'display_time' => [
+                Rule::when($isImageOrUrl, [
+                    'required',
+                    'integer',
+                    'min:'.self::MIN_DURATION,
+                    'max:'.self::MAX_DURATION,
+                ]),
+                Rule::when($type === ContentType::Video, ['prohibited']),
             ],
 
             'url' => [

@@ -45,11 +45,13 @@ class ContentController extends Controller
                     $data['url'],
                     $data['url_user_name'] ?? null,
                     $data['url_password'] ?? null,
+                    (int) $data['display_time'],
                 ),
                 ContentType::Image, ContentType::Video => $this->service->uploadFile(
                     $monitor,
                     $request->file('file'),
                     $type,
+                    isset($data['display_time']) ? (int) $data['display_time'] : null,
                 ),
                 default => throw new UnsupportedContentTypeException(
                     "Unsupported content type: {$type->name}",

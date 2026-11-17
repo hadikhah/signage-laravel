@@ -22,22 +22,20 @@ class PanelPageController extends Controller
 
         $monitor = Monitor::query()->whereIn('ip_address', $ips)->first();
 
-        $contents = $monitor
+        $monitorContents = $monitor
             ? MonitorContent::query()
                 ->where('monitor_id', $monitor->id)
                 ->with('content')
                 ->whereHas('content', fn ($q) => $q->where('deleted', false))
                 ->orderBy('content_order')
                 ->get()
-                ->pluck('content')
-                ->filter()
-                ->values()
+                // ->values()
             : collect();
 
         return view('panel.index', [
             'monitor' => $monitor,
             'ip' => $ip,
-            'contents' => $contents,
+            'monitorContents' => $monitorContents,
             'devOverride' => app()->environment(['local', 'development', 'testing']),
         ]);
     }
