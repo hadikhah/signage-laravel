@@ -395,7 +395,7 @@ it('accepts URL submission via multipart form data (string content_type)', funct
     $r = $this->post('/api/v1/panel/contents?ip=10.0.0.1', [
         'content_type' => '5',
         'url' => 'https://google.com',
-        'display_time' => '60',
+        'display_time' => 60,
     ], ['Accept' => 'application/json']);
 
     $r->assertOk();
@@ -408,7 +408,7 @@ it('accepts image upload via multipart form data (string content_type)', functio
     $r = $this->post('/api/v1/panel/contents?ip=10.0.0.1', [
         'content_type' => '1',
         'file' => $file,
-        'display_time' => '10',
+        'display_time' => 10,
     ], ['Accept' => 'application/json']);
 
     $r->assertOk();
@@ -433,27 +433,4 @@ it('rejects array content_type with 422 (not 500)', function () {
         'url' => 'https://example.com',
         'display_time' => '60',
     ], ['Accept' => 'application/json'])->assertStatus(422);
-});
-it('accepts URL submission via multipart form data (string content_type)', function () {
-    $r = $this->post('/api/v1/panel/contents?ip=10.0.0.1', [
-        'content_type' => '5',
-        'url' => 'https://google.com',
-        'display_time' => '60',                // ← add
-    ], ['Accept' => 'application/json']);
-
-    $r->assertOk();
-    expect(Content::latest('id')->first()->content_type)->toBe(5);
-});
-
-it('accepts image upload via multipart form data (string content_type)', function () {
-    $file = UploadedFile::fake()->image('banner.jpg');
-
-    $r = $this->post('/api/v1/panel/contents?ip=10.0.0.1', [
-        'content_type' => '1',
-        'file' => $file,
-        'display_time' => '10',                // ← add
-    ], ['Accept' => 'application/json']);
-
-    $r->assertOk();
-    expect(Content::latest('id')->first()->content_type)->toBe(1);
 });

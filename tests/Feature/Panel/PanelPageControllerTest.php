@@ -203,6 +203,7 @@ it('accepts URL submission via multipart form data (string content_type)', funct
     $r = $this->post('/api/v1/panel/contents?ip=10.0.0.1', [
         'content_type' => '5',
         'url' => 'https://google.com',
+        'display_time' => '60',
     ], ['Accept' => 'application/json']);
 
     $r->assertOk();
@@ -215,6 +216,7 @@ it('accepts image upload via multipart form data (string content_type)', functio
     $r = $this->post('/api/v1/panel/contents?ip=10.0.0.1', [
         'content_type' => '1',
         'file' => $file,
+        'display_time' => '10',
     ], ['Accept' => 'application/json']);
 
     $r->assertOk();
