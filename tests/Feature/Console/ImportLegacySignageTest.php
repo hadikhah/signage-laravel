@@ -13,14 +13,13 @@ use Illuminate\Support\Facades\File;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->exportDir = sys_get_temp_dir() . '/signage-export-' . uniqid();
+    $this->exportDir = sys_get_temp_dir().'/signage-export-'.uniqid();
     File::ensureDirectoryExists($this->exportDir);
 });
 
 afterEach(function () {
     File::deleteDirectory($this->exportDir);
 });
-
 
 // =============================================================================
 // Helper — writeTableCsv (local fallback if not defined in tests/Pest.php)
@@ -38,7 +37,7 @@ if (! function_exists('writeTableCsv')) {
         foreach ($rows as $row) {
             fputcsv(
                 $handle,
-                array_map(fn($col) => $row[$col] ?? null, $header),
+                array_map(fn ($col) => $row[$col] ?? null, $header),
                 escape: '',
             );
         }
@@ -48,15 +47,13 @@ if (! function_exists('writeTableCsv')) {
     }
 }
 
-
-
 // =============================================================================
 // Fixture builder — one CSV per table, parents before children
 // =============================================================================
 
 if (! function_exists('seedExportDir')) {
     /**
-     * @return array<string, int>  table → row count written to CSV
+     * @return array<string, int> table → row count written to CSV
      */
     function seedExportDir(string $dir, int $perTable = 3): array
     {
@@ -317,14 +314,14 @@ it('is idempotent — running twice does not duplicate rows', function () {
         ->assertExitCode(0);
 
     $afterFirst = collect($expected)
-        ->map(fn($_, $t) => DB::table($t)->count())
+        ->map(fn ($_, $t) => DB::table($t)->count())
         ->all();
 
     $this->artisan('signage:import-legacy', ['--path' => $this->exportDir])
         ->assertExitCode(0);
 
     $afterSecond = collect($expected)
-        ->map(fn($_, $t) => DB::table($t)->count())
+        ->map(fn ($_, $t) => DB::table($t)->count())
         ->all();
 
     expect($afterSecond)->toBe($afterFirst);
@@ -364,20 +361,20 @@ it('overwrites existing values with null when CSV cell is empty (REPLACE semanti
     $dept = Department::first();
     $dept->update([
         'daily_message' => 'temp message',
-        'lock'          => true,          // ← boolean, not string
+        'lock' => true,          // ← boolean, not string
     ]);
 
     expect($dept->fresh()->daily_message)->toBe('temp message');
     expect($dept->fresh()->lock)->toBeTrue();
 
     $departments = Department::all()->map(fn ($d) => [
-        'id'              => $d->id,
+        'id' => $d->id,
         'department_name' => $d->department_name,
-        'daily_message'   => '',          // empty → null
-        'is_child'        => $d->is_child ? 1 : 0,
-        'lock'            => '',          // empty → null (only works if nullable)
-        'parent_id'       => $d->parent_id,
-        'office_id'       => $d->office_id,
+        'daily_message' => '',          // empty → null
+        'is_child' => $d->is_child ? 1 : 0,
+        'lock' => '',          // empty → null (only works if nullable)
+        'parent_id' => $d->parent_id,
+        'office_id' => $d->office_id,
     ])->all();
 
     writeTableCsv($this->exportDir, 'departments', $departments);

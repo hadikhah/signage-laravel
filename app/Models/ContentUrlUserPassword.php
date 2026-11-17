@@ -19,7 +19,7 @@ class ContentUrlUserPassword extends Model
     ];
 
     protected $hidden = [
-        'password'
+        'password',
     ];
 
     public function contents(): HasMany

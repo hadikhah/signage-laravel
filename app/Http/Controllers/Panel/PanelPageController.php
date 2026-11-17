@@ -35,9 +35,9 @@ class PanelPageController extends Controller
             : collect();
 
         return view('panel.index', [
-            'monitor'     => $monitor,
-            'ip'          => $ip,
-            'contents'    => $contents,
+            'monitor' => $monitor,
+            'ip' => $ip,
+            'contents' => $contents,
             'devOverride' => app()->environment(['local', 'development', 'testing']),
         ]);
     }
@@ -49,6 +49,7 @@ class PanelPageController extends Controller
             if (is_string($o) && $o !== '') {
                 return $o;
             }
+
             return (string) $request->ip();
         }
 

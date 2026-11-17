@@ -55,7 +55,7 @@ class ContentController extends Controller
                     "Unsupported content type: {$type->name}",
                 ),
             };
-        } catch (UnsupportedContentTypeException | ContentDeletedException $e) {
+        } catch (UnsupportedContentTypeException|ContentDeletedException $e) {
             return response()->json(
                 Envelope::error(Codes::ERROR_VALIDATION, $e->getMessage()),
                 422,
@@ -74,11 +74,11 @@ class ContentController extends Controller
         broadcast(new PlaylistRefreshEvent($monitor->ip_address));
 
         return response()->json(Envelope::list([
-            'contentId'   => $content->id,
+            'contentId' => $content->id,
             'contentName' => $content->content_name,
             'contentPath' => $content->content_type === ContentType::Url->value
                 ? null
-                : "/media/files/{$content->id}/" . rawurlencode($content->content_name),
+                : "/media/files/{$content->id}/".rawurlencode($content->content_name),
         ]));
     }
 
@@ -105,7 +105,7 @@ class ContentController extends Controller
 
         return response()->json(Envelope::list([
             'detached' => $result->detached,
-            'deleted'  => $result->deleted,
+            'deleted' => $result->deleted,
         ]));
     }
 
@@ -134,6 +134,7 @@ class ContentController extends Controller
             if (is_string($o) && $o !== '') {
                 return $o;
             }
+
             return (string) $request->ip();
         }
 

@@ -18,18 +18,18 @@ beforeEach(function () {
     Storage::fake('media');
     Event::fake([PlaylistRefreshEvent::class]);
 
-    $city   = City::factory()->create();
+    $city = City::factory()->create();
     $office = Office::create(['name' => 'HQ', 'city_id' => $city->id]);
-    $dept   = Department::create([
+    $dept = Department::create([
         'department_name' => 'IT',
-        'office_id'       => $office->id,
-        'is_child'        => false,
+        'office_id' => $office->id,
+        'is_child' => false,
     ]);
 
     $this->monitor = Monitor::create([
-        'ip_address'    => '10.0.0.1',
+        'ip_address' => '10.0.0.1',
         'department_id' => $dept->id,
-        'status'        => 'online',
+        'status' => 'online',
     ]);
 });
 
@@ -42,7 +42,7 @@ it('uploads an image file, attaches to monitor, and activates it', function () {
 
     $r = $this->postJson('/api/v1/panel/contents?ip=10.0.0.1', [
         'content_type' => 1,
-        'file'         => $file,
+        'file' => $file,
     ]);
 
     $r->assertOk();
@@ -60,7 +60,7 @@ it('uploads an image file, attaches to monitor, and activates it', function () {
         ->first();
     expect($mc)->not->toBeNull()->and($mc->active)->toBeTrue();
 
-    Event::assertDispatched(PlaylistRefreshEvent::class, fn($e) => $e->ip === '10.0.0.1');
+    Event::assertDispatched(PlaylistRefreshEvent::class, fn ($e) => $e->ip === '10.0.0.1');
 });
 
 it('rejects upload for unknown IP with 404', function () {
@@ -68,7 +68,7 @@ it('rejects upload for unknown IP with 404', function () {
 
     $r = $this->postJson('/api/v1/panel/contents?ip=10.99.99.99', [
         'content_type' => 1,
-        'file'         => $file,
+        'file' => $file,
     ]);
 
     $r->assertStatus(404);
@@ -80,7 +80,7 @@ it('rejects non-image file for image content type', function () {
 
     $this->postJson('/api/v1/panel/contents?ip=10.0.0.1', [
         'content_type' => 1,
-        'file'         => $file,
+        'file' => $file,
     ])->assertStatus(422);
 
     expect(Content::count())->toBe(0);
@@ -91,7 +91,7 @@ it('rejects files larger than 10MB', function () {
 
     $this->postJson('/api/v1/panel/contents?ip=10.0.0.1', [
         'content_type' => 1,
-        'file'         => $file,
+        'file' => $file,
     ])->assertStatus(422);
 
     expect(Content::count())->toBe(0);
@@ -103,10 +103,10 @@ it('rejects files larger than 10MB', function () {
 
 it('creates URL content with credentials', function () {
     $r = $this->postJson('/api/v1/panel/contents?ip=10.0.0.1', [
-        'content_type'  => 5,
-        'url'           => 'https://example.com',
+        'content_type' => 5,
+        'url' => 'https://example.com',
         'url_user_name' => 'demo',
-        'url_password'  => 'secret',
+        'url_password' => 'secret',
     ]);
 
     $r->assertOk();
@@ -123,7 +123,7 @@ it('creates URL content with credentials', function () {
 it('creates URL content without credentials', function () {
     $r = $this->postJson('/api/v1/panel/contents?ip=10.0.0.1', [
         'content_type' => 5,
-        'url'          => 'https://example.com',
+        'url' => 'https://example.com',
     ]);
 
     $r->assertOk();
@@ -142,12 +142,12 @@ it('rejects URL submission without url', function () {
 it('rejects non-http/https URL schemes', function () {
     $this->postJson('/api/v1/panel/contents?ip=10.0.0.1', [
         'content_type' => 5,
-        'url'          => 'javascript:alert(1)',
+        'url' => 'javascript:alert(1)',
     ])->assertStatus(422);
 
     $this->postJson('/api/v1/panel/contents?ip=10.0.0.1', [
         'content_type' => 5,
-        'url'          => 'file:///etc/passwd',
+        'url' => 'file:///etc/passwd',
     ])->assertStatus(422);
 });
 
@@ -158,11 +158,11 @@ it('rejects non-http/https URL schemes', function () {
 it('detaches and soft-deletes content used only by this monitor', function () {
     $c = Content::factory()->create(['deleted' => false, 'content_type' => 1]);
     MonitorContent::create([
-        'monitor_id'    => $this->monitor->id,
-        'content_id'    => $c->id,
+        'monitor_id' => $this->monitor->id,
+        'content_id' => $c->id,
         'content_order' => 1,
-        'display_time'  => 5,
-        'active'        => true,
+        'display_time' => 5,
+        'active' => true,
     ]);
     Storage::disk('media')->put("files/{$c->id}/{$c->content_name}", 'x');
 
@@ -185,33 +185,33 @@ it('detaches and soft-deletes content used only by this monitor', function () {
 
 it('detaches from one monitor without deleting when content is still used elsewhere', function () {
     // Second monitor + dept
-    $city   = City::factory()->create();
+    $city = City::factory()->create();
     $office = Office::create(['name' => 'HQ2', 'city_id' => $city->id]);
-    $dept   = Department::create([
+    $dept = Department::create([
         'department_name' => 'Other',
-        'office_id'       => $office->id,
-        'is_child'        => false,
+        'office_id' => $office->id,
+        'is_child' => false,
     ]);
     $other = Monitor::create([
-        'ip_address'    => '10.0.0.2',
+        'ip_address' => '10.0.0.2',
         'department_id' => $dept->id,
     ]);
 
     // Content attached to BOTH
     $c = Content::factory()->create(['deleted' => false, 'content_type' => 1]);
     MonitorContent::create([
-        'monitor_id'    => $this->monitor->id,
-        'content_id'    => $c->id,
+        'monitor_id' => $this->monitor->id,
+        'content_id' => $c->id,
         'content_order' => 1,
-        'display_time'  => 5,
-        'active'        => true,
+        'display_time' => 5,
+        'active' => true,
     ]);
     MonitorContent::create([
-        'monitor_id'    => $other->id,
-        'content_id'    => $c->id,
+        'monitor_id' => $other->id,
+        'content_id' => $c->id,
         'content_order' => 1,
-        'display_time'  => 5,
-        'active'        => true,
+        'display_time' => 5,
+        'active' => true,
     ]);
     Storage::disk('media')->put("files/{$c->id}/{$c->content_name}", 'x');
 
@@ -233,22 +233,22 @@ it('detaches from one monitor without deleting when content is still used elsewh
 // =============================================================================
 
 it('rejects delete of content belonging to a different monitor with 403', function () {
-    $city   = City::factory()->create();
+    $city = City::factory()->create();
     $office = Office::create(['name' => 'HQ2', 'city_id' => $city->id]);
-    $dept   = Department::create([
+    $dept = Department::create([
         'department_name' => 'Other',
-        'office_id'       => $office->id,
-        'is_child'        => false,
+        'office_id' => $office->id,
+        'is_child' => false,
     ]);
     $other = Monitor::create(['ip_address' => '10.0.0.2', 'department_id' => $dept->id]);
 
     $c = Content::factory()->create(['deleted' => false]);
     MonitorContent::create([
-        'monitor_id'    => $other->id,
-        'content_id'    => $c->id,
+        'monitor_id' => $other->id,
+        'content_id' => $c->id,
         'content_order' => 1,
-        'display_time'  => 5,
-        'active'        => true,
+        'display_time' => 5,
+        'active' => true,
     ]);
 
     $this->deleteJson("/api/v1/panel/contents/{$c->id}?ip=10.0.0.1")
@@ -272,7 +272,7 @@ it('assigns sequential content_order without gaps', function () {
     foreach ([1, 2, 3] as $i) {
         $this->postJson('/api/v1/panel/contents?ip=10.0.0.1', [
             'content_type' => 5,
-            'url'          => "https://example{$i}.com",
+            'url' => "https://example{$i}.com",
         ])->assertOk();
     }
 

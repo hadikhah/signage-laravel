@@ -16,12 +16,12 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     Storage::fake('media');
 
-    $city   = City::factory()->create();
+    $city = City::factory()->create();
     $office = Office::create(['name' => 'HQ', 'city_id' => $city->id]);
     $this->dept = Department::create([
         'department_name' => 'IT',
-        'office_id'       => $office->id,
-        'is_child'        => false,
+        'office_id' => $office->id,
+        'is_child' => false,
     ]);
 });
 
@@ -54,7 +54,7 @@ it('fails when a media file is missing', function () {
     $c = Content::factory()->create([
         'content_name' => 'missing.jpg',
         'content_type' => 1,
-        'deleted'      => false,
+        'deleted' => false,
     ]);
     // deliberately not writing the file
 
@@ -67,7 +67,7 @@ it('ignores URL content for media check', function () {
     Content::factory()->create([
         'content_name' => 'Example Website',
         'content_type' => 5,
-        'deleted'      => false,
+        'deleted' => false,
     ]);
 
     $this->artisan('signage:doctor')->assertExitCode(0);
@@ -77,7 +77,7 @@ it('ignores deleted content for media check', function () {
     Content::factory()->create([
         'content_name' => 'gone.jpg',
         'content_type' => 1,
-        'deleted'      => true,
+        'deleted' => true,
     ]);
 
     $this->artisan('signage:doctor')->assertExitCode(0);
@@ -136,7 +136,7 @@ it('--skip-media bypasses the filesystem check', function () {
     Content::factory()->create([
         'content_name' => 'missing.jpg',
         'content_type' => 1,
-        'deleted'      => false,
+        'deleted' => false,
     ]);
 
     // Would fail if media check ran

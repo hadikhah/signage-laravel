@@ -75,7 +75,7 @@ final class PlaylistResolver
         $ids = ShareContent::pluck('content_id')->all();
 
         $items = $this->loadContentsByIds($ids)
-            ->map(fn(Content $c) => $this->toItem($c, displayTime: 0))
+            ->map(fn (Content $c) => $this->toItem($c, displayTime: 0))
             ->values()
             ->all();
 
@@ -96,7 +96,7 @@ final class PlaylistResolver
     {
         $viewModel = View::query()
             ->where('name', $view)
-            ->whereHas('monitors', fn($q) => $q->where('monitors.id', $monitor->id))
+            ->whereHas('monitors', fn ($q) => $q->where('monitors.id', $monitor->id))
             ->first();
 
         if ($viewModel === null) {
@@ -110,9 +110,9 @@ final class PlaylistResolver
             ->where('active', true)
             ->whereHas('content', function ($q) use ($viewModel, $today) {
                 $q->where('deleted', false)
-                    ->where(fn($q) => $q->whereNull('from_date')->orWhere('from_date', '<=', $today))
-                    ->where(fn($q) => $q->whereNull('to_date')->orWhere('to_date', '>=', $today))
-                    ->whereHas('viewContents', fn($q) => $q->where('view_id', $viewModel->id));
+                    ->where(fn ($q) => $q->whereNull('from_date')->orWhere('from_date', '<=', $today))
+                    ->where(fn ($q) => $q->whereNull('to_date')->orWhere('to_date', '>=', $today))
+                    ->whereHas('viewContents', fn ($q) => $q->where('view_id', $viewModel->id));
             })
             ->with(['content.user', 'content.contentUrlUserPassword'])
             ->get();
@@ -123,7 +123,7 @@ final class PlaylistResolver
                 ['content.order', 'asc'],   // related column
                 ['content.id', 'asc'],      // related column
             ])
-            ->map(fn(MonitorContent $mc) => $this->toItem($mc->content, displayTime: (int) $mc->display_time))
+            ->map(fn (MonitorContent $mc) => $this->toItem($mc->content, displayTime: (int) $mc->display_time))
             ->values()
             ->all();
 
@@ -149,8 +149,8 @@ final class PlaylistResolver
             ->where('active', true)
             ->whereHas('content', function ($q) use ($today) {
                 $q->where('deleted', false)
-                    ->where(fn($q) => $q->whereNull('from_date')->orWhere('from_date', '<=', $today))
-                    ->where(fn($q) => $q->whereNull('to_date')->orWhere('to_date', '>=', $today));
+                    ->where(fn ($q) => $q->whereNull('from_date')->orWhere('from_date', '<=', $today))
+                    ->where(fn ($q) => $q->whereNull('to_date')->orWhere('to_date', '>=', $today));
             })
             ->with(['content.user', 'content.contentUrlUserPassword'])
             ->get();
@@ -161,14 +161,14 @@ final class PlaylistResolver
                 ['content.order', 'asc'],
                 ['content.id', 'asc'],
             ])
-            ->map(fn(MonitorContent $mc) => $this->toItem($mc->content, displayTime: (int) $mc->display_time))
+            ->map(fn (MonitorContent $mc) => $this->toItem($mc->content, displayTime: (int) $mc->display_time))
             ->values()
             ->all();
 
         if ($settings->active_base_content && $this->hasBaseLink($monitor)) {
             $baseIds = BaseContent::pluck('content_id')->all();
             $baseItems = $this->loadContentsByIds($baseIds)
-                ->map(fn(Content $c) => $this->toItem($c, displayTime: 0))
+                ->map(fn (Content $c) => $this->toItem($c, displayTime: 0))
                 ->values()
                 ->all();
             $items = array_merge($items, $baseItems);
@@ -177,7 +177,7 @@ final class PlaylistResolver
         if (empty($items) && $this->hasBaseLink($monitor)) {
             $baseIds = BaseContent::pluck('content_id')->all();
             $items = $this->loadContentsByIds($baseIds)
-                ->map(fn(Content $c) => $this->toItem($c, displayTime: 0))
+                ->map(fn (Content $c) => $this->toItem($c, displayTime: 0))
                 ->values()
                 ->all();
         }
@@ -258,7 +258,6 @@ final class PlaylistResolver
             $encodedName = rawurlencode((string) $content->content_name);
             $path = "/media/files/{$content->id}/{$encodedName}";
         }
-
 
         return new PlaylistItem(
             contentId: $content->id,

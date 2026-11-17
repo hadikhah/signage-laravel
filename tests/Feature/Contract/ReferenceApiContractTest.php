@@ -10,7 +10,7 @@ uses(RefreshDatabase::class);
 
 function fixtureRef(string $name): array
 {
-    return json_decode(file_get_contents(__DIR__ . "/../../Fixtures/legacy/api/{$name}.json"), true);
+    return json_decode(file_get_contents(__DIR__."/../../Fixtures/legacy/api/{$name}.json"), true);
 }
 
 /**
@@ -24,8 +24,8 @@ function assertEnvelopeStructure(array $actual, array $expected): void
 
     foreach (['ResultCode' => 'int', 'Message' => 'null_or_string'] as $key => $type) {
         match ($type) {
-            'int'             => expect($actual[$key])->toBeInt(),
-            'null_or_string'  => expect($actual[$key] === null || is_string($actual[$key]))->toBeTrue(),
+            'int' => expect($actual[$key])->toBeInt(),
+            'null_or_string' => expect($actual[$key] === null || is_string($actual[$key]))->toBeTrue(),
         };
     }
 
@@ -40,8 +40,8 @@ function assertEnvelopeStructure(array $actual, array $expected): void
         } else {
             match (gettype($sub)) {
                 'integer' => expect($actual['Data'][$key])->toBeInt(),
-                'string'  => expect($actual['Data'][$key])->toBeString(),
-                default   => null,
+                'string' => expect($actual['Data'][$key])->toBeString(),
+                default => null,
             };
         }
     }
@@ -80,12 +80,12 @@ it('offices use PascalCase fields', function () {
 });
 
 it('departments use PascalCase fields', function () {
-    $city   = City::factory()->create();
+    $city = City::factory()->create();
     $office = Office::create(['name' => 'HQ', 'city_id' => $city->id]);
     Department::create([
         'department_name' => 'IT',
-        'office_id'       => $office->id,
-        'is_child'        => false,
+        'office_id' => $office->id,
+        'is_child' => false,
     ]);
 
     $row = $this->getJson('/api/v1/departments/list')->json('Data.0');
@@ -98,12 +98,12 @@ it('departments use PascalCase fields', function () {
 });
 
 it('monitors use PascalCase fields', function () {
-    $city   = City::factory()->create();
+    $city = City::factory()->create();
     $office = Office::create(['name' => 'HQ', 'city_id' => $city->id]);
-    $dept   = Department::create([
+    $dept = Department::create([
         'department_name' => 'IT',
-        'office_id'       => $office->id,
-        'is_child'        => false,
+        'office_id' => $office->id,
+        'is_child' => false,
     ]);
     Monitor::create([
         'ip_address' => '10.0.0.1', 'department_id' => $dept->id,

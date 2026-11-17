@@ -44,7 +44,7 @@ class SignageDoctor extends Command
 
         if ($this->option('json')) {
             $this->line(json_encode([
-                'ok'      => ! $hasFailure,
+                'ok' => ! $hasFailure,
                 'results' => $this->results,
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
         } else {
@@ -62,10 +62,11 @@ class SignageDoctor extends Command
     {
         if ($this->option('skip-media')) {
             $this->results[] = [
-                'name'   => 'media_files',
-                'ok'     => true,
+                'name' => 'media_files',
+                'ok' => true,
                 'detail' => 'skipped (--skip-media)',
             ];
+
             return;
         }
 
@@ -75,7 +76,7 @@ class SignageDoctor extends Command
             ->where('content_type', '!=', 5)
             ->get(['id', 'content_name', 'content_type']);
 
-        $disk   = Storage::disk('media');
+        $disk = Storage::disk('media');
         $issues = [];
 
         foreach ($contents as $content) {
@@ -83,16 +84,16 @@ class SignageDoctor extends Command
             if (! $disk->exists($path)) {
                 $issues[] = [
                     'content_id' => $content->id,
-                    'name'       => $content->content_name,
-                    'expected'   => $disk->path($path),
+                    'name' => $content->content_name,
+                    'expected' => $disk->path($path),
                 ];
             }
         }
 
         $this->results[] = [
-            'name'   => 'media_files',
-            'ok'     => $issues === [],
-            'detail' => count($issues) . '/' . $contents->count() . ' files missing',
+            'name' => 'media_files',
+            'ok' => $issues === [],
+            'detail' => count($issues).'/'.$contents->count().' files missing',
             'issues' => $issues,
         ];
     }
@@ -104,19 +105,19 @@ class SignageDoctor extends Command
     private function checkMonitorDepartments(): void
     {
         // FK prevents this in normal operation, but verify the assumption.
-        $total   = Monitor::count();
+        $total = Monitor::count();
         $orphans = Monitor::whereNotIn(
             'department_id',
             DB::table('departments')->pluck('id'),
         )->get(['id', 'ip_address', 'department_id']);
 
         $this->results[] = [
-            'name'   => 'monitor_departments',
-            'ok'     => $orphans->isEmpty(),
-            'detail' => $orphans->count() . "/{$total} monitors have no department",
+            'name' => 'monitor_departments',
+            'ok' => $orphans->isEmpty(),
+            'detail' => $orphans->count()."/{$total} monitors have no department",
             'issues' => $orphans->map(fn ($m) => [
-                'monitor_id'    => $m->id,
-                'ip_address'    => $m->ip_address,
+                'monitor_id' => $m->id,
+                'ip_address' => $m->ip_address,
                 'department_id' => $m->department_id,
             ])->all(),
         ];
@@ -134,12 +135,12 @@ class SignageDoctor extends Command
             ->get(['id', 'name']);
 
         $this->results[] = [
-            'name'   => 'view_monitor_linkage',
-            'ok'     => $orphans->isEmpty(),
-            'detail' => $orphans->count() . "/{$total} views have no monitor",
+            'name' => 'view_monitor_linkage',
+            'ok' => $orphans->isEmpty(),
+            'detail' => $orphans->count()."/{$total} views have no monitor",
             'issues' => $orphans->map(fn ($v) => [
                 'view_id' => $v->id,
-                'name'    => $v->name,
+                'name' => $v->name,
             ])->all(),
         ];
     }
@@ -151,28 +152,28 @@ class SignageDoctor extends Command
     private function checkOrphanJoinRows(): void
     {
         $checks = [
-            'monitor_contents'  => $this->orphansFor('monitor_contents', [
+            'monitor_contents' => $this->orphansFor('monitor_contents', [
                 'monitor_id' => 'monitors',
                 'content_id' => 'contents',
             ]),
-            'view_contents'     => $this->orphansFor('view_contents', [
-                'view_id'    => 'views',
+            'view_contents' => $this->orphansFor('view_contents', [
+                'view_id' => 'views',
                 'content_id' => 'contents',
             ]),
-            'monitor_views'     => $this->orphansFor('monitor_views', [
+            'monitor_views' => $this->orphansFor('monitor_views', [
                 'monitor_id' => 'monitors',
-                'view_id'    => 'views',
+                'view_id' => 'views',
             ]),
-            'share_contents'    => $this->orphansFor('share_contents', [
+            'share_contents' => $this->orphansFor('share_contents', [
                 'content_id' => 'contents',
             ]),
-            'share_monitors'    => $this->orphansFor('share_monitors', [
+            'share_monitors' => $this->orphansFor('share_monitors', [
                 'monitor_id' => 'monitors',
             ]),
-            'base_contents'     => $this->orphansFor('base_contents', [
+            'base_contents' => $this->orphansFor('base_contents', [
                 'content_id' => 'contents',
             ]),
-            'base_monitors'     => $this->orphansFor('base_monitors', [
+            'base_monitors' => $this->orphansFor('base_monitors', [
                 'monitor_id' => 'monitors',
             ]),
         ];
@@ -180,9 +181,9 @@ class SignageDoctor extends Command
         $totalIssues = collect($checks)->sum(fn ($c) => count($c['issues']));
 
         $this->results[] = [
-            'name'   => 'orphan_join_rows',
-            'ok'     => $totalIssues === 0,
-            'detail' => "{$totalIssues} orphan rows across " . count($checks) . ' tables',
+            'name' => 'orphan_join_rows',
+            'ok' => $totalIssues === 0,
+            'detail' => "{$totalIssues} orphan rows across ".count($checks).' tables',
             'issues' => collect($checks)
                 ->filter(fn ($c) => $c['issues'] !== [])
                 ->all(),
@@ -192,7 +193,7 @@ class SignageDoctor extends Command
     /**
      * For a join table, find rows whose FK columns point at missing parents.
      *
-     * @param array<string, string> $fkToTable  column => parent table
+     * @param  array<string, string>  $fkToTable  column => parent table
      * @return array{issues: array<int, array>}
      */
     private function orphansFor(string $joinTable, array $fkToTable): array
@@ -227,7 +228,7 @@ class SignageDoctor extends Command
     {
         $this->newLine();
         $this->line('  <fg=cyan;options=bold>Signage doctor</>');
-        $this->line('  ' . str_repeat('=', 60));
+        $this->line('  '.str_repeat('=', 60));
         $this->newLine();
 
         foreach ($this->results as $r) {
@@ -236,10 +237,10 @@ class SignageDoctor extends Command
 
             if (! $r['ok'] && ! empty($r['issues'])) {
                 foreach (array_slice($r['issues'], 0, 10) as $issue) {
-                    $this->line('      ' . json_encode($issue, JSON_UNESCAPED_UNICODE));
+                    $this->line('      '.json_encode($issue, JSON_UNESCAPED_UNICODE));
                 }
                 if (count($r['issues']) > 10) {
-                    $this->line('      ... and ' . (count($r['issues']) - 10) . ' more');
+                    $this->line('      ... and '.(count($r['issues']) - 10).' more');
                 }
             }
         }

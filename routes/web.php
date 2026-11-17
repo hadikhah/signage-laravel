@@ -20,8 +20,8 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('invitations/{invitation}', [TeamInvitationController::class, 'decline'])->name('invitations.decline');
 });
 
-Route::get('panel', [PanelPageController::class, "index"]);
+Route::get('panel', [PanelPageController::class, 'index']);
 
 Route::get('monitor', [MonitorController::class, 'index']);
 
-require __DIR__ . '/settings.php';
+require __DIR__.'/settings.php';

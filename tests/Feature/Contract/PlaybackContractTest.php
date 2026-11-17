@@ -30,26 +30,25 @@ uses(RefreshDatabase::class);
  * Not asserted:
  *   - dynamic values (ContentId, dates, timestamps) — only types / formats
  */
-
 beforeEach(function () {
     // Freeze time so MonitorDateTime is deterministic
     // Carbon::setTestNow(Carbon::parse('2025-11-07 12:00:00'));
 
-    $city   = City::factory()->create();
+    $city = City::factory()->create();
     $office = Office::create(['name' => 'HQ', 'city_id' => $city->id]);
-    $dept   = Department::create([
+    $dept = Department::create([
         'department_name' => 'IT',
-        'office_id'       => $office->id,
-        'is_child'        => false,
-        'daily_message'   => 'Welcome to IT',
+        'office_id' => $office->id,
+        'is_child' => false,
+        'daily_message' => 'Welcome to IT',
     ]);
 
     ApplicationSetting::query()->delete();
     ApplicationSetting::create([
-        'id'                  => 1,
-        'bypass_all_content'  => false,
+        'id' => 1,
+        'bypass_all_content' => false,
         'active_base_content' => false,
-        'last_update'         => null,
+        'last_update' => null,
     ]);
 
     $this->dept = $dept;
@@ -67,14 +66,12 @@ beforeEach(function () {
  * Recursively walk $expected; assert $actual has same keys, casing, types.
  * Skips value comparison except for enum-like string fields.
  *
- * @param  mixed  $actual
- * @param  mixed  $expected
- * @param  string $path     Human-readable path for failure messages
+ * @param  string  $path  Human-readable path for failure messages
  */
 function assertStructureMatches(mixed $actual, mixed $expected, string $path = '$'): void
 {
     if (is_array($expected)) {
-        expect($actual)->toBeArray("$path: expected array, got " . gettype($actual));
+        expect($actual)->toBeArray("$path: expected array, got ".gettype($actual));
 
         // Keys — order-independent, exact casing
         expect(array_keys($actual))->toEqualCanonicalizing(
@@ -88,21 +85,23 @@ function assertStructureMatches(mixed $actual, mixed $expected, string $path = '
             }
             assertStructureMatches($actual[$key], $sub, "$path.$key");
         }
+
         return;
     }
 
     if ($expected === null) {
         expect($actual)->toBeNull("$path: expected null");
+
         return;
     }
 
     // Type assertions — content-agnostic
     match (gettype($expected)) {
-        'string'  => expect($actual)->toBeString("$path: expected string"),
+        'string' => expect($actual)->toBeString("$path: expected string"),
         'integer' => expect($actual)->toBeInt("$path: expected int"),
         'boolean' => expect($actual)->toBeBool("$path: expected bool"),
-        'double'  => expect($actual)->toBeFloat("$path: expected float"),
-        default   => null,
+        'double' => expect($actual)->toBeFloat("$path: expected float"),
+        default => null,
     };
 
     // Known enum fields: exact value check
@@ -113,7 +112,7 @@ function assertStructureMatches(mixed $actual, mixed $expected, string $path = '
 
 function fixtureJson(string $name): array
 {
-    return json_decode(file_get_contents(__DIR__ . "/../../Fixtures/legacy/api/{$name}.json"), true);
+    return json_decode(file_get_contents(__DIR__."/../../Fixtures/legacy/api/{$name}.json"), true);
 }
 
 // -----------------------------------------------------------------------------
@@ -122,27 +121,27 @@ function fixtureJson(string $name): array
 
 it('playback-default matches fixture structure', function () {
     $m = Monitor::create([
-        'ip_address'    => '10.0.0.1',
+        'ip_address' => '10.0.0.1',
         'department_id' => $this->dept->id,
-        'status'        => 'online',
+        'status' => 'online',
     ]);
     $c = Content::factory()->create([
         'client_file_name' => 'original.jpg',           // ← add to every Content factory call
         'content_name' => 'welcome.jpg',
         'content_type' => 1,
-        'deleted'      => false,
-        'user_id'      => null,           // ← add: fixture expects UserId=null
-        'from_date'    => null,           // ← add: no date window
-        'to_date'      => null,           // ← add
-        'uploaded_at'  => Carbon::parse('2026-01-01 00:00:00'),
-        'order'        => 1,
+        'deleted' => false,
+        'user_id' => null,           // ← add: fixture expects UserId=null
+        'from_date' => null,           // ← add: no date window
+        'to_date' => null,           // ← add
+        'uploaded_at' => Carbon::parse('2026-01-01 00:00:00'),
+        'order' => 1,
     ]);
     MonitorContent::create([
-        'monitor_id'    => $m->id,
-        'content_id'    => $c->id,
+        'monitor_id' => $m->id,
+        'content_id' => $c->id,
         'content_order' => 1,
-        'display_time'  => 10,
-        'active'        => true,
+        'display_time' => 10,
+        'active' => true,
     ]);
 
     $response = $this->getJson('/api/v1/playback/monitor-contents?ip=10.0.0.1')->json();
@@ -158,19 +157,19 @@ it('playback-share matches fixture structure', function () {
     ApplicationSetting::current()->update(['bypass_all_content' => true]);
 
     $m = Monitor::create([
-        'ip_address'    => '10.0.0.1',
+        'ip_address' => '10.0.0.1',
         'department_id' => $this->dept->id,
-        'status'        => 'online',
+        'status' => 'online',
     ]);
     $c = Content::factory()->create([
         'client_file_name' => null,           // ← add to every Content factory call
         'content_name' => 'shared.jpg',
         'content_type' => 1,
-        'deleted'      => false,
-        'user_id'      => null,           // ← add: fixture expects UserId=null
-        'from_date'    => null,           // ← add: no date window
-        'to_date'      => null,           // ← add
-        'uploaded_at'  => Carbon::parse('2026-01-02 00:00:00'),
+        'deleted' => false,
+        'user_id' => null,           // ← add: fixture expects UserId=null
+        'from_date' => null,           // ← add: no date window
+        'to_date' => null,           // ← add
+        'uploaded_at' => Carbon::parse('2026-01-02 00:00:00'),
     ]);
 
     DB::table('share_monitors')->insert([
@@ -195,20 +194,20 @@ it('playback-share matches fixture structure', function () {
 
 it('playback-view matches fixture structure', function () {
     $m = Monitor::create([
-        'ip_address'    => '10.0.0.1',
+        'ip_address' => '10.0.0.1',
         'department_id' => $this->dept->id,
-        'status'        => 'online',
+        'status' => 'online',
     ]);
     $view = View::create(['name' => 'morning']);
-    $c    = Content::factory()->create([
+    $c = Content::factory()->create([
         'client_file_name' => null,           // ← add to every Content factory call
         'content_name' => 'welcome.jpg',
         'content_type' => 1,
-        'deleted'      => false,
-        'user_id'      => null,           // ← add: fixture expects UserId=null
-        'from_date'    => null,           // ← add: no date window
-        'to_date'      => null,           // ← add
-        'uploaded_at'  => Carbon::parse('2026-01-01 00:00:00'),
+        'deleted' => false,
+        'user_id' => null,           // ← add: fixture expects UserId=null
+        'from_date' => null,           // ← add: no date window
+        'to_date' => null,           // ← add
+        'uploaded_at' => Carbon::parse('2026-01-01 00:00:00'),
     ]);
 
     DB::table('monitor_views')->insert([
@@ -224,11 +223,11 @@ it('playback-view matches fixture structure', function () {
         'updated_at' => now(),
     ]);
     MonitorContent::create([
-        'monitor_id'    => $m->id,
-        'content_id'    => $c->id,
+        'monitor_id' => $m->id,
+        'content_id' => $c->id,
         'content_order' => 1,
-        'display_time'  => 7,
-        'active'        => true,
+        'display_time' => 7,
+        'active' => true,
     ]);
 
     $response = $this->getJson('/api/v1/playback/monitor-contents?ip=10.0.0.1&view=morning')->json();
@@ -244,38 +243,38 @@ it('playback-base matches fixture structure', function () {
     ApplicationSetting::current()->update(['active_base_content' => true]);
 
     $m = Monitor::create([
-        'ip_address'    => '10.0.0.1',
+        'ip_address' => '10.0.0.1',
         'department_id' => $this->dept->id,
-        'status'        => 'online',
+        'status' => 'online',
     ]);
-    $own  = Content::factory()->create([
+    $own = Content::factory()->create([
         'client_file_name' => null,           // ← add to every Content factory call
         'content_name' => 'own.jpg',
         'content_type' => 1,
-        'deleted'      => false,
-        'user_id'      => null,           // ← add: fixture expects UserId=null
-        'from_date'    => null,           // ← add: no date window
-        'to_date'      => null,           // ← add
-        'uploaded_at'  => Carbon::parse('2026-01-01 00:00:00'),
-        'order'        => 1,
+        'deleted' => false,
+        'user_id' => null,           // ← add: fixture expects UserId=null
+        'from_date' => null,           // ← add: no date window
+        'to_date' => null,           // ← add
+        'uploaded_at' => Carbon::parse('2026-01-01 00:00:00'),
+        'order' => 1,
     ]);
     $base = Content::factory()->create([
         'client_file_name' => null,           // ← add to every Content factory call
         'content_name' => 'base.jpg',
         'content_type' => 1,
-        'deleted'      => false,
-        'user_id'      => null,           // ← add: fixture expects UserId=null
-        'from_date'    => null,           // ← add: no date window
-        'to_date'      => null,           // ← add
-        'uploaded_at'  => Carbon::parse('2026-01-02 00:00:00'),
-        'order'        => 2,
+        'deleted' => false,
+        'user_id' => null,           // ← add: fixture expects UserId=null
+        'from_date' => null,           // ← add: no date window
+        'to_date' => null,           // ← add
+        'uploaded_at' => Carbon::parse('2026-01-02 00:00:00'),
+        'order' => 2,
     ]);
     MonitorContent::create([
-        'monitor_id'    => $m->id,
-        'content_id'    => $own->id,
+        'monitor_id' => $m->id,
+        'content_id' => $own->id,
         'content_order' => 1,
-        'display_time'  => 10,
-        'active'        => true,
+        'display_time' => 10,
+        'active' => true,
     ]);
     DB::table('base_monitors')->insert([
         'monitor_id' => $m->id,
@@ -336,9 +335,9 @@ it('preserves legacy typo UploadeDateTime (extra e)', function () {
     $m = Monitor::create(['ip_address' => '10.0.0.1', 'department_id' => $this->dept->id]);
     $c = Content::factory()->create([
         'client_file_name' => null,           // ← add to every Content factory call
-        'user_id'      => null,           // ← add: fixture expects UserId=null
-        'from_date'    => null,           // ← add: no date window
-        'to_date'      => null,           // ← add
+        'user_id' => null,           // ← add: fixture expects UserId=null
+        'from_date' => null,           // ← add: no date window
+        'to_date' => null,           // ← add
         'uploaded_at' => now(),
     ]);
     MonitorContent::create([
@@ -392,7 +391,7 @@ it('maps ContentTypeText correctly for every type', function () {
 
         $c = Content::factory()->create([
             'client_file_name' => null,           // ← add to every Content factory call
-            'content_type' => $type
+            'content_type' => $type,
         ]);
         MonitorContent::create([
             'monitor_id' => $m->id,

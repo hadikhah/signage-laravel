@@ -28,7 +28,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // throws error if N+1 is happened , only in local mode
-        Model::preventLazyLoading(! app()->isProduction()); 
+        Model::preventLazyLoading(! app()->isProduction());
 
         $this->configureDefaults();
 

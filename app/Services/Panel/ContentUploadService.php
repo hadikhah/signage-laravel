@@ -34,8 +34,10 @@ use Illuminate\Support\Facades\Storage;
 final class ContentUploadService
 {
     private const IMAGE_DISPLAY = 10;
+
     private const VIDEO_DISPLAY = 0;
-    private const URL_DISPLAY   = 10;
+
+    private const URL_DISPLAY = 10;
 
     public function uploadFile(Monitor $monitor, UploadedFile $file, ContentType $type): Content
     {
@@ -45,7 +47,7 @@ final class ContentUploadService
 
         try {
             return DB::transaction(function () use ($monitor, $file, $type, &$storedPath) {
-                $order   = $this->lockMonitorAndNextOrder($monitor);
+                $order = $this->lockMonitorAndNextOrder($monitor);
                 $content = $this->createFileContent($file, $type, $order);
 
                 $storedPath = "files/{$content->id}/{$content->content_name}";
@@ -75,7 +77,7 @@ final class ContentUploadService
         ?string $password = null,
     ): Content {
         return DB::transaction(function () use ($monitor, $url, $userName, $password) {
-            $order   = $this->lockMonitorAndNextOrder($monitor);
+            $order = $this->lockMonitorAndNextOrder($monitor);
             $content = $this->createUrlContent($url, $userName, $password, $order);
 
             $this->attachToMonitor($monitor, $content, ContentType::Url, $order);
@@ -87,7 +89,7 @@ final class ContentUploadService
     public function delete(Monitor $monitor, Content $content): DeletionResult
     {
         $fileToDelete = null;
-        $wasDeleted   = false;
+        $wasDeleted = false;
 
         DB::transaction(function () use ($monitor, $content, &$fileToDelete, &$wasDeleted) {
             // 1. Lock content row FIRST. All operations touching `deleted`
@@ -200,16 +202,16 @@ final class ContentUploadService
         $storedName = $file->hashName();
 
         return Content::query()->create([
-            'content_name'                 => $storedName,
-            'client_file_name'             => $file->getClientOriginalName(),
-            'user_id'                      => null,
-            'content_type'                 => $type->value,
-            'is_auto_login'                => false,
-            'deleted'                      => false,
-            'order'                        => $order,
-            'uploaded_at'                  => now(),
-            'from_date'                    => null,
-            'to_date'                      => null,
+            'content_name' => $storedName,
+            'client_file_name' => $file->getClientOriginalName(),
+            'user_id' => null,
+            'content_type' => $type->value,
+            'is_auto_login' => false,
+            'deleted' => false,
+            'order' => $order,
+            'uploaded_at' => now(),
+            'from_date' => null,
+            'to_date' => null,
             'content_url_user_password_id' => null,
         ]);
     }
@@ -237,24 +239,24 @@ final class ContentUploadService
         $password = $password !== null && $password !== '' ? $password : null;
 
         $cred = ContentUrlUserPassword::query()->create([
-            'url'       => $url,
+            'url' => $url,
             'user_name' => $userName,
-            'password'  => $password,
+            'password' => $password,
         ]);
 
         $hostname = parse_url($url, PHP_URL_HOST) ?: 'URL Content';
 
         return Content::query()->create([
-            'content_name'                 => $hostname,
-            'client_file_name'             => null,
-            'user_id'                      => null,
-            'content_type'                 => ContentType::Url->value,
-            'is_auto_login'                => $userName !== null || $password !== null,
-            'deleted'                      => false,
-            'order'                        => $order,
-            'uploaded_at'                  => now(),
-            'from_date'                    => null,
-            'to_date'                      => null,
+            'content_name' => $hostname,
+            'client_file_name' => null,
+            'user_id' => null,
+            'content_type' => ContentType::Url->value,
+            'is_auto_login' => $userName !== null || $password !== null,
+            'deleted' => false,
+            'order' => $order,
+            'uploaded_at' => now(),
+            'from_date' => null,
+            'to_date' => null,
             'content_url_user_password_id' => $cred->id,
         ]);
     }
@@ -293,11 +295,11 @@ final class ContentUploadService
         }
 
         return MonitorContent::query()->create([
-            'monitor_id'    => $monitor->id,
-            'content_id'    => $locked->id,
+            'monitor_id' => $monitor->id,
+            'content_id' => $locked->id,
             'content_order' => $order,
-            'display_time'  => $this->defaultDisplayTime($type),
-            'active'        => true,
+            'display_time' => $this->defaultDisplayTime($type),
+            'active' => true,
         ]);
     }
 
@@ -306,8 +308,8 @@ final class ContentUploadService
         return match ($type) {
             ContentType::Image => self::IMAGE_DISPLAY,
             ContentType::Video => self::VIDEO_DISPLAY,
-            ContentType::Url   => self::URL_DISPLAY,
-            default            => 0,
+            ContentType::Url => self::URL_DISPLAY,
+            default => 0,
         };
     }
 }

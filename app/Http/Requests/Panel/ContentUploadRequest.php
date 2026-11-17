@@ -9,7 +9,6 @@ use Illuminate\Validation\Rule;
 
 class ContentUploadRequest extends FormRequest
 {
-
     private const MAX_FILE_KB = 10240;
 
     /**
@@ -44,13 +43,13 @@ class ContentUploadRequest extends FormRequest
                 Rule::when($type === ContentType::Image, [
                     'required',
                     'file',
-                    'max:' . self::MAX_FILE_KB,
+                    'max:'.self::MAX_FILE_KB,
                     'mimetypes:image/jpeg,image/png,image/gif,image/webp',
                 ]),
                 Rule::when($type === ContentType::Video, [
                     'required',
                     'file',
-                    'max:' . self::MAX_FILE_KB,
+                    'max:'.self::MAX_FILE_KB,
                     'mimes:mp4,webm,mov',
                 ]),
                 Rule::when($type === ContentType::Url, ['prohibited']),

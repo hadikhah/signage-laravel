@@ -12,19 +12,19 @@ use Illuminate\Http\UploadedFile;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $city   = City::factory()->create();
+    $city = City::factory()->create();
     $office = Office::create(['name' => 'HQ', 'city_id' => $city->id]);
-    $dept   = Department::create([
+    $dept = Department::create([
         'department_name' => 'IT',
-        'office_id'       => $office->id,
-        'is_child'        => false,
+        'office_id' => $office->id,
+        'is_child' => false,
     ]);
 
     $this->monitor = Monitor::create([
-        'ip_address'    => '10.0.0.1',
-        'host_name'     => 'reception-01',
+        'ip_address' => '10.0.0.1',
+        'host_name' => 'reception-01',
         'department_id' => $dept->id,
-        'status'        => 'online',
+        'status' => 'online',
     ]);
 
     $this->dept = $dept;
@@ -64,31 +64,31 @@ it('renders no-monitor state for unknown IP', function () {
 
 it('lists contents attached to the monitor', function () {
     $a = Content::factory()->create([
-        'content_name'     => 'uuid-a.jpg',
+        'content_name' => 'uuid-a.jpg',
         'client_file_name' => 'alpha.jpg',
-        'deleted'          => false,
-        'content_type'     => 1,
+        'deleted' => false,
+        'content_type' => 1,
     ]);
     $b = Content::factory()->create([
-        'content_name'     => 'uuid-b.jpg',
+        'content_name' => 'uuid-b.jpg',
         'client_file_name' => 'beta.jpg',
-        'deleted'          => false,
-        'content_type'     => 1,
+        'deleted' => false,
+        'content_type' => 1,
     ]);
 
     MonitorContent::create([
-        'monitor_id'    => $this->monitor->id,
-        'content_id'    => $a->id,
+        'monitor_id' => $this->monitor->id,
+        'content_id' => $a->id,
         'content_order' => 1,
-        'display_time'  => 5,
-        'active'        => true,
+        'display_time' => 5,
+        'active' => true,
     ]);
     MonitorContent::create([
-        'monitor_id'    => $this->monitor->id,
-        'content_id'    => $b->id,
+        'monitor_id' => $this->monitor->id,
+        'content_id' => $b->id,
         'content_order' => 2,
-        'display_time'  => 5,
-        'active'        => true,
+        'display_time' => 5,
+        'active' => true,
     ]);
 
     $this->get('/panel?ip=10.0.0.1')
@@ -100,26 +100,26 @@ it('lists contents attached to the monitor', function () {
 it('does not list soft-deleted contents', function () {
     $visible = Content::factory()->create([
         'client_file_name' => 'visible.jpg',
-        'deleted'          => false,
+        'deleted' => false,
     ]);
     $gone = Content::factory()->create([
         'client_file_name' => 'hidden-deleted.jpg',
-        'deleted'          => true,
+        'deleted' => true,
     ]);
 
     MonitorContent::create([
-        'monitor_id'    => $this->monitor->id,
-        'content_id'    => $visible->id,
+        'monitor_id' => $this->monitor->id,
+        'content_id' => $visible->id,
         'content_order' => 1,
-        'display_time'  => 5,
-        'active'        => true,
+        'display_time' => 5,
+        'active' => true,
     ]);
     MonitorContent::create([
-        'monitor_id'    => $this->monitor->id,
-        'content_id'    => $gone->id,
+        'monitor_id' => $this->monitor->id,
+        'content_id' => $gone->id,
         'content_order' => 2,
-        'display_time'  => 5,
-        'active'        => true,
+        'display_time' => 5,
+        'active' => true,
     ]);
 
     $this->get('/panel?ip=10.0.0.1')
@@ -130,40 +130,40 @@ it('does not list soft-deleted contents', function () {
 
 it('does not list contents attached to a different monitor', function () {
     // Second monitor
-    $city2   = City::factory()->create();
+    $city2 = City::factory()->create();
     $office2 = Office::create(['name' => 'HQ2', 'city_id' => $city2->id]);
-    $dept2   = Department::create([
+    $dept2 = Department::create([
         'department_name' => 'Other',
-        'office_id'       => $office2->id,
-        'is_child'        => false,
+        'office_id' => $office2->id,
+        'is_child' => false,
     ]);
     $other = Monitor::create([
-        'ip_address'    => '10.0.0.2',
+        'ip_address' => '10.0.0.2',
         'department_id' => $dept2->id,
     ]);
 
     $mine = Content::factory()->create([
         'client_file_name' => 'mine.jpg',
-        'deleted'          => false,
+        'deleted' => false,
     ]);
     $theirs = Content::factory()->create([
         'client_file_name' => 'their-content.jpg',
-        'deleted'          => false,
+        'deleted' => false,
     ]);
 
     MonitorContent::create([
-        'monitor_id'    => $this->monitor->id,
-        'content_id'    => $mine->id,
+        'monitor_id' => $this->monitor->id,
+        'content_id' => $mine->id,
         'content_order' => 1,
-        'display_time'  => 5,
-        'active'        => true,
+        'display_time' => 5,
+        'active' => true,
     ]);
     MonitorContent::create([
-        'monitor_id'    => $other->id,
-        'content_id'    => $theirs->id,
+        'monitor_id' => $other->id,
+        'content_id' => $theirs->id,
         'content_order' => 1,
-        'display_time'  => 5,
-        'active'        => true,
+        'display_time' => 5,
+        'active' => true,
     ]);
 
     $this->get('/panel?ip=10.0.0.1')
@@ -202,7 +202,7 @@ it('accepts URL submission via multipart form data (string content_type)', funct
     // Simulates browser FormData — content_type arrives as string "5"
     $r = $this->post('/api/v1/panel/contents?ip=10.0.0.1', [
         'content_type' => '5',
-        'url'          => 'https://google.com',
+        'url' => 'https://google.com',
     ], ['Accept' => 'application/json']);
 
     $r->assertOk();
@@ -214,7 +214,7 @@ it('accepts image upload via multipart form data (string content_type)', functio
 
     $r = $this->post('/api/v1/panel/contents?ip=10.0.0.1', [
         'content_type' => '1',
-        'file'         => $file,
+        'file' => $file,
     ], ['Accept' => 'application/json']);
 
     $r->assertOk();

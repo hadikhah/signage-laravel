@@ -46,7 +46,7 @@ function makeMonitor(array $overrides = []): Monitor
     $dept = Department::first();
 
     return Monitor::create(array_merge([
-        'ip_address' => '10.0.0.' . random_int(1, 250),
+        'ip_address' => '10.0.0.'.random_int(1, 250),
         'department_id' => $dept->id,
         'status' => 'online',
     ], $overrides));
@@ -142,7 +142,7 @@ it('orders by content_order, then contents.order, then id', function () {
     attachMonitorContent($m, $c3, ['content_order' => 1]);
 
     $playlist = $this->resolver->forMonitor('10.0.0.1', null);
-    $ids = array_map(fn($i) => $i->contentId, $playlist->items);
+    $ids = array_map(fn ($i) => $i->contentId, $playlist->items);
 
     expect($ids)->toBe([$c2->id, $c3->id, $c1->id]);
 });
