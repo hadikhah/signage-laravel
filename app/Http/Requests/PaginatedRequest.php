@@ -62,6 +62,6 @@ class PaginatedRequest extends FormRequest
 
     public function sortDirection(): SortDirection
     {
-        return SortDirection::fromInput($this->input('sortDirection'));
+        return SortDirection::fromInput($this->validated('sortDirection'));
     }
 }
